@@ -1,4 +1,11 @@
+"use client"
+
+  import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import Cookies from "js-cookie"
+import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,32 +18,95 @@ import {
 } from "@/components/ui/card"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error, {
+        description: "Por favor, verifique suas credenciais e tente novamente.",
+        action: {
+          label: "Ok",
+          onClick: () => {},
+        },
+      })
+    }
+  }, [error])
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username,
+          password: password,
+        }),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.message || "Failed to login")
+      }
+
+      const data = await res.json()
+
+      // 1. Armazena o token de autenticação
+      Cookies.set("token", data.accessToken, { expires: 1 })
+
+      // 2. Armazena os dados do usuário para exibição na UI
+      const user = { name: `${data.firstName} ${data.lastName}`, email: data.email, avatar: data.image }
+      Cookies.set("user", JSON.stringify(user), { expires: 1 })
+
+      router.push("/dashboard")
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="flex items-center justify-center h-screen">
-      <Card className="w-[350px]">
-        <CardHeader>
-          <CardTitle>Login</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="m@example.com" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <Button className="w-full">Sign In</Button>
-          <p className="text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link href="/register" className="underline">
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+      <form onSubmit={handleSubmit}>
+        <Card className="w-[350px]">
+          <CardHeader>
+            <CardTitle>Login</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Usuário</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="kminchelle"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            {/* O toast agora é acionado pelo useEffect. Não precisamos de nada aqui. */}
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-2">
+            <Button className="w-full" type="submit" disabled={isLoading}>
+              {isLoading ? "Signing In..." : "Sign In"}
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Não possui uma conta? Fale com o seu administrador.
+            </p>
+          </CardFooter>
+        </Card>
+      </form>
     </div>
   )
 }
