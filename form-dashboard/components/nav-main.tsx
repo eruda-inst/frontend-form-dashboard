@@ -18,6 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { useNavigation } from "@/components/navigation-provider"
 
 export function NavMain({
   items,
@@ -37,6 +38,8 @@ export function NavMain({
   onSelect?: (title: string) => void
   activeItem?: string | null
 }) {
+  const { activeTitle, setActiveTitle } = useNavigation()
+
   return (
     <SidebarGroup>
       {/* <SidebarGroupLabel>Visualização</SidebarGroupLabel> */}
@@ -46,8 +49,9 @@ export function NavMain({
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip={item.title}
-                isActive={activeItem === item.title}
-                onClick={() => onSelect?.(item.title)}
+                isActive={activeTitle === item.title}
+                onClick={() => setActiveTitle(item.title)}
+
               >
                 <item.icon />
                 <span>{item.title}</span>
@@ -65,10 +69,16 @@ export function NavMain({
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton
-                            onClick={() => onSelect?.(subItem.title)}
-                            isActive={activeItem === subItem.title}
+                            asChild
+                            isActive={activeTitle === subItem.title}
                           >
-                            <span>{subItem.title}</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveTitle(subItem.title)}
+                            >
+                              <span>{subItem.title}</span>
+                            </button>
+
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

@@ -2,7 +2,7 @@ import { cookies } from "next/headers"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { DashboardProvider } from "@/components/dashboard-context"
+import { NavigationProvider } from "@/components/navigation-provider"
 
 // Define um tipo para o objeto do usuário para clareza
 type User = {
@@ -29,11 +29,12 @@ export default function DashboardLayout({
   const user: User = userCookie ? JSON.parse(userCookie.value) : defaultUser
 
   return (
-    <DashboardProvider>
-      <SidebarProvider>
+    <SidebarProvider>
+      <NavigationProvider>
         <AppSidebar user={user} />
         {children}
-      </SidebarProvider>
-    </DashboardProvider>
+      </NavigationProvider>
+    </SidebarProvider>
+
   )
 }
