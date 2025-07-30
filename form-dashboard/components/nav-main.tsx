@@ -21,6 +21,8 @@ import {
 
 export function NavMain({
   items,
+  onSelect,
+  activeItem,
 }: {
   items: {
     title: string
@@ -32,6 +34,8 @@ export function NavMain({
       url: string
     }[]
   }[]
+  onSelect?: (title: string) => void
+  activeItem?: string | null
 }) {
   return (
     <SidebarGroup>
@@ -40,11 +44,13 @@ export function NavMain({
         {items.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={item.title}>
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
+              <SidebarMenuButton
+                tooltip={item.title}
+                isActive={activeItem === item.title}
+                onClick={() => onSelect?.(item.title)}
+              >
+                <item.icon />
+                <span>{item.title}</span>
               </SidebarMenuButton>
               {item.items?.length ? (
                 <>
@@ -58,10 +64,11 @@ export function NavMain({
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
-                            <a href={subItem.url}>
-                              <span>{subItem.title}</span>
-                            </a>
+                          <SidebarMenuSubButton
+                            onClick={() => onSelect?.(subItem.title)}
+                            isActive={activeItem === subItem.title}
+                          >
+                            <span>{subItem.title}</span>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}
