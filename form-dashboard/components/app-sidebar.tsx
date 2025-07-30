@@ -26,6 +26,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useDashboard } from "@/components/dashboard-context"
 // import Separator from "@/components/ui/separator"
 const navMain = [
     {
@@ -155,6 +156,7 @@ export function AppSidebar({
   user,
   ...props
 }: { user: User } & React.ComponentProps<typeof Sidebar>) {
+  const { selectedItem, setSelectedItem } = useDashboard()
   return (
     <Sidebar variant="inset" {...props}>
       {/* <SidebarHeader>
@@ -175,7 +177,11 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader> */}
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain
+          items={navMain}
+          onSelect={setSelectedItem}
+          activeItem={selectedItem}
+        />
         {/* <NavProjects projects={projects} /> */}
         {/* <NavSecondary items={navSecondary} className="mt-auto" /> */}
       </SidebarContent>
