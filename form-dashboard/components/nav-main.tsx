@@ -22,6 +22,8 @@ import { useNavigation } from "@/components/navigation-provider"
 
 export function NavMain({
   items,
+  onSelect,
+  activeItem,
 }: {
   items: {
     title: string
@@ -33,6 +35,8 @@ export function NavMain({
       url: string
     }[]
   }[]
+  onSelect?: (title: string) => void
+  activeItem?: string | null
 }) {
   const { activeTitle, setActiveTitle } = useNavigation()
 
@@ -47,6 +51,7 @@ export function NavMain({
                 tooltip={item.title}
                 isActive={activeTitle === item.title}
                 onClick={() => setActiveTitle(item.title)}
+
               >
                 <item.icon />
                 <span>{item.title}</span>
@@ -73,6 +78,7 @@ export function NavMain({
                             >
                               <span>{subItem.title}</span>
                             </button>
+
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

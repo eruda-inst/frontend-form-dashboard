@@ -35,5 +35,6 @@ export default function DashboardLayout({
         {children}
       </NavigationProvider>
     </SidebarProvider>
+
   )
 }
