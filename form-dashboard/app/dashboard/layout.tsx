@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarProvider } from "@/components/ui/sidebar"
+import { NavigationProvider } from "@/components/navigation-provider"
 
 // Define um tipo para o objeto do usuário para clareza
 type User = {
@@ -29,8 +30,10 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <AppSidebar user={user} />
-      {children}
+      <NavigationProvider>
+        <AppSidebar user={user} />
+        {children}
+      </NavigationProvider>
     </SidebarProvider>
   )
 }

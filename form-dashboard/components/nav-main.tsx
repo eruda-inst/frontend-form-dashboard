@@ -18,6 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { useNavigation } from "@/components/navigation-provider"
 
 export function NavMain({
   items,
@@ -33,6 +34,8 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const { activeTitle, setActiveTitle } = useNavigation()
+
   return (
     <SidebarGroup>
       {/* <SidebarGroupLabel>Visualização</SidebarGroupLabel> */}
@@ -40,11 +43,13 @@ export function NavMain({
         {items.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={item.title}>
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
+              <SidebarMenuButton
+                tooltip={item.title}
+                isActive={activeTitle === item.title}
+                onClick={() => setActiveTitle(item.title)}
+              >
+                <item.icon />
+                <span>{item.title}</span>
               </SidebarMenuButton>
               {item.items?.length ? (
                 <>
@@ -58,10 +63,16 @@ export function NavMain({
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
-                            <a href={subItem.url}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={activeTitle === subItem.title}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveTitle(subItem.title)}
+                            >
                               <span>{subItem.title}</span>
-                            </a>
+                            </button>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}
