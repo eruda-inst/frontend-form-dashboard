@@ -1,9 +1,7 @@
 "use client"
 
-  import { useEffect, useState } from "react"
-import Link from "next/link"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import Cookies from "js-cookie"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -30,7 +28,7 @@ export default function LoginPage() {
         description: "Por favor, verifique suas credenciais e tente novamente.",
         action: {
           label: "Ok",
-          onClick: () => {},
+          onClick: () => setError(null),
         },
       })
     }
@@ -42,7 +40,7 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      const res = await fetch(`/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -52,18 +50,16 @@ export default function LoginPage() {
       })
 
       if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.message || "Failed to login")
+        let errorMessage = "Falha no login"
+        try {
+          const errorData = await res.json()
+          errorMessage = errorData.message || errorMessage
+        } catch (e) {
+          // A resposta não é JSON, podemos usar o statusText se disponível
+          errorMessage = res.statusText || errorMessage
+        }
+        throw new Error(errorMessage)
       }
-
-      const data = await res.json()
-
-      // 1. Armazena o token de autenticação
-      Cookies.set("token", data.accessToken, { expires: 1 })
-
-      // 2. Armazena os dados do usuário para exibição na UI
-      const user = { name: `${data.firstName} ${data.lastName}`, email: data.email, avatar: data.image }
-      Cookies.set("user", JSON.stringify(user), { expires: 1 })
 
       router.push("/dashboard")
     } catch (err: any) {
@@ -99,7 +95,7 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
             <Button className="w-full" type="submit" disabled={isLoading}>
-              {isLoading ? "Signing In..." : "Sign In"}
+              {isLoading ? "Entrando..." : "Entrar"}
             </Button>
             <p className="text-sm text-muted-foreground">
               Não possui uma conta? Fale com o seu administrador.
