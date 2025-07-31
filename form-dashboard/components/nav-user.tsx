@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import {
@@ -11,7 +12,6 @@ import {
   UserRoundPen,
   Sparkles,
 } from "lucide-react"
-import Cookies from "js-cookie"
 
 import {
   Avatar,
@@ -45,11 +45,22 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const handleLogout = () => {
-    Cookies.remove("token")
-    Cookies.remove("user")
-    router.push("/login")
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      // Faz a chamada para a nossa API de logout, que por sua vez
+      // se comunica com o backend e limpa os cookies.
+      await fetch("/api/logout", {
+        method: "POST",
+      })
+    } catch (error) {
+      console.error("Falha ao chamar a API de logout:", error)
+    } finally {
+      // Independentemente do resultado da API, redirecionamos o usuário.
+      router.push("/login")
+    }
   }
 
   const getInitials = (name: string) => {
@@ -125,9 +136,15 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleLogout}>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault()
+                handleLogout()
+              }}
+              disabled={isLoggingOut}
+            >
               <LogOut />
-              Sair
+              {isLoggingOut ? "Saindo..." : "Sair"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

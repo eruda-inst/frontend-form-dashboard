@@ -1,69 +1,84 @@
 import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import type { NextRequest, NextFetchEvent } from "next/server"
 
-export async function middleware(request: NextRequest) {
+// Helper para criar respostas de redirecionamento de forma mais limpa.
+function redirect(request: NextRequest, path: string) {
+  const url = new URL(path, request.url)
+  return NextResponse.redirect(url)
+}
+
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
+  const accessToken = request.cookies.get("accessToken")?.value
+
+  const isAuthPage =
+    pathname.startsWith("/login") || pathname.startsWith("/register")
+  const isSetupPage = pathname === "/setup-admin"
+
+  // Se não há token e o usuário tenta acessar uma página protegida, redireciona para o login.
+  // Esta é uma verificação rápida para evitar chamadas de API desnecessárias.
+  if (!accessToken && !isAuthPage && !isSetupPage) {
+    return redirect(request, "/login")
+  }
 
   const authStatusUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/status`
 
   try {
-    // É importante passar os cookies da requisição original para a API de status
-    // para que o backend possa determinar se o usuário está autenticado.
+    // Usamos event.waitUntil para que a verificação de status não bloqueie a resposta inicial.
+    // No entanto, para a lógica de redirecionamento, precisamos esperar pela resposta.
     const authStatusResponse = await fetch(authStatusUrl, {
       headers: {
-        Cookie: request.headers.get("cookie") || "",
+        Authorization: `Bearer ${accessToken || ""}`,
       },
       cache: "no-store",
     })
-
-    // Se a API de status não responder corretamente, é mais seguro não fazer nada
-    // e deixar a aplicação cliente lidar com o erro.
-    if (!authStatusResponse.ok) {
-      console.error(
-        "Middleware: Falha ao buscar /auth/status",
-        authStatusResponse.statusText,
-      )
-      return NextResponse.next()
-    }
 
     const { admin_existe, autenticado } = await authStatusResponse.json()
 
     // Cenário 1: Nenhum administrador foi configurado no sistema.
     if (!admin_existe) {
-      // Se o usuário já está na página de setup, permite o acesso.
-      if (pathname === "/setup-admin") {
-        return NextResponse.next()
+      // Permite o acesso apenas à página de setup, redirecionando todo o resto para lá.
+      if (!isSetupPage) {
+        return redirect(request, "/setup-admin")
       }
-      // Para qualquer outra página, redireciona para a configuração do admin.
-      const setupUrl = new URL("/setup-admin", request.url)
-      return NextResponse.redirect(setupUrl)
+      return NextResponse.next()
     }
 
-    // Cenário 2: O administrador já existe, aplicamos as regras normais.
-    const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register")
-
-    // Se o usuário está autenticado e tenta acessar as páginas de login/registro,
-    // redireciona para o dashboard.
-    if (autenticado && isAuthPage) {
-      const dashboardUrl = new URL("/dashboard", request.url)
-      return NextResponse.redirect(dashboardUrl)
+    // A partir daqui, o admin já existe. A página de setup não deve ser mais acessível.
+    if (isSetupPage) {
+      return redirect(request, "/login")
     }
 
-    // Se o usuário não está autenticado e tenta acessar uma página protegida (que não seja de autenticação ou setup),
-    // redireciona para o login.
-    if (!autenticado && !isAuthPage && pathname !== "/setup-admin") {
-      const loginUrl = new URL("/login", request.url)
-      return NextResponse.redirect(loginUrl)
+    // Cenário 2: Usuário está autenticado (token válido).
+    if (autenticado) {
+      // Se ele tentar acessar uma página de autenticação, redireciona para o dashboard.
+      if (isAuthPage) {
+        return redirect(request, "/dashboard")
+      }
+      // Caso contrário, permite o acesso.
+      return NextResponse.next()
     }
+
+    // Cenário 3: Usuário NÃO está autenticado (token inválido/expirado ou não existe).
+    // Se ele já estiver em uma página pública (login/registro), permite o acesso.
+    if (isAuthPage) {
+      return NextResponse.next()
+    }
+
+    // Se ele tentar acessar uma página protegida, redireciona para o login
+    // E o mais importante: LIMPA OS COOKIES INVÁLIDOS para quebrar o loop.
+    const response = redirect(request, "/login")
+    response.cookies.delete("accessToken")
+    response.cookies.delete("refreshToken")
+    response.cookies.delete("user")
+
+    return response
   } catch (error) {
     console.error("Erro no middleware:", error)
     // Em caso de erro de rede (ex: API fora do ar), não bloqueia o usuário.
     // A página pode tentar renderizar e lidar com o erro no lado do cliente.
     return NextResponse.next()
   }
-
-  // Se nenhuma das condições de redirecionamento for atendida, permite o acesso.
-  return NextResponse.next()
 }
 
 export const config = {
@@ -78,4 +93,3 @@ export const config = {
     "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 }
-

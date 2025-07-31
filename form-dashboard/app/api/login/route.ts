@@ -1,5 +1,19 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { z } from "zod";
+
+// 1. Define o schema (modelo) da resposta esperada da API externa.
+const loginApiSchema = z.object({
+  id: z.string(),
+  username: z.string(),
+  email: z.string().email(),
+  firstName: z.string(),
+  lastName: z.string(),
+  gender: z.string(),
+  image: z.string().url(),
+  accessToken: z.string(),
+  refreshToken: z.string(),
+});
 
 export async function POST(request: Request) {
   try {
@@ -22,20 +36,42 @@ export async function POST(request: Request) {
 
     const data = await apiRes.json();
 
-    // 2. Extrai o token e os dados do usuário da resposta da API
-    const { accessToken, firstName, lastName, email, image } = data;
+    // 2. Valida os dados recebidos contra o schema.
+    const parsedData = loginApiSchema.safeParse(data);
+
+    if (!parsedData.success) {
+      console.error("Erro de validação Zod:", parsedData.error.flatten());
+      return NextResponse.json(
+        { message: "Resposta inválida da API de autenticação." },
+        { status: 500 }
+      );
+    }
+
+    // 3. Usa os dados validados e com tipo garantido.
+    const { accessToken, refreshToken, firstName, lastName, email, image } = parsedData.data;
 
     // 3. Define os cookies na resposta que será enviada ao navegador
     const user = { name: `${firstName} ${lastName}`, email, avatar: image };
-    cookies().set("token", accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 }); // 1 dia
-    cookies().set("user", JSON.stringify(user), { httpOnly: true, secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 });
+    // O accessToken precisa ser acessível pelo middleware e também pelo JavaScript
+    // do lado do cliente para chamadas de API. Por isso, NÃO é httpOnly.
+    cookies().set("accessToken", accessToken, { secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 15, httpOnly: false }); // 15 minutos
+    // O refreshToken é usado para obter um novo accessToken sem que o usuário
+    // precise fazer login novamente. Ele tem uma vida longa e é armazenado
+    // de forma segura como um cookie httpOnly.
+    cookies().set("refreshToken", refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7 }); // 7 dias
+    // O cookie 'user' também não precisa ser httpOnly, pois pode ser útil para
+    // exibir informações do usuário na UI sem uma chamada de API.
+    cookies().set("user", JSON.stringify(user), { secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7, httpOnly: false });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    let message = "Ocorreu um erro interno."
+    if (error instanceof Error) {
+      message = error.message
+    }
     return NextResponse.json(
-      { message: error.message || "Ocorreu um erro interno." },
+      { message },
       { status: 500 }
     );
   }
 }
-

@@ -1,0 +1,34 @@
+import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
+
+export async function POST(request: Request) {
+  // 1. Pega a instância da "loja" de cookies uma única vez.
+  const cookieStore = cookies()
+  const accessToken = cookieStore.get("accessToken")?.value
+
+  if (accessToken) {
+    try {
+      // 1. Informa o backend que o usuário está fazendo logout.
+      // O backend deve invalidar o token (especialmente o refresh token).
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+      // Não precisamos nos preocupar com a resposta, o objetivo principal é deslogar.
+    } catch (error) {
+      console.error("Erro ao tentar fazer logout no backend:", error)
+      // A falha na comunicação com o backend não deve impedir o logout do frontend.
+    }
+  }
+
+  // 2. Limpa os cookies no navegador do usuário.
+  // É crucial que isso seja feito no lado do servidor para remover cookies httpOnly.
+  cookieStore.delete("accessToken")
+  cookieStore.delete("refreshToken")
+  cookieStore.delete("user")
+
+  // 3. Retorna uma resposta de sucesso para o cliente.
+  return NextResponse.json({ message: "Logout realizado com sucesso." })
+}

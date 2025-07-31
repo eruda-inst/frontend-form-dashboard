@@ -46,14 +46,14 @@ export default function Page() {
               {activeTitle !== "Dashboard" && (
                 <>
                   <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="#">{activeTitle}</BreadcrumbLink>
+                    <BreadcrumbPage href="#">{activeTitle}</BreadcrumbPage>
                   </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
+                  {/* <BreadcrumbSeparator className="hidden md:block" /> */}
                 </>
               )}
-              <BreadcrumbItem>
+              {/* <BreadcrumbItem>
                 <BreadcrumbPage>Dashboard</BreadcrumbPage>
-              </BreadcrumbItem>
+              </BreadcrumbItem> */}
             </BreadcrumbList>
           </Breadcrumb>
         </div>
