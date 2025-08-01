@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
+import { Smile } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -70,8 +72,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <form onSubmit={handleSubmit}>
+    (
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <div className="flex flex-col gap-4 p-6 md:p-10">
+        <div className="flex justify-center gap-2 md:justify-start">
+          <a href="#" className="flex items-center gap-2 font-medium">
+            <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
+              <Smile className="size-4" />
+            </div>
+            
+          </a>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-xs">
+            <form onSubmit={handleSubmit}>
         <Card className="w-[350px]">
           <CardHeader>
             <CardTitle>Login</CardTitle>
@@ -103,6 +117,18 @@ export default function LoginPage() {
           </CardFooter>
         </Card>
       </form>
+          </div>
+        </div>
+      </div>
+      <div className="bg-muted relative hidden lg:block">
+        <img
+          src="https://images.pexels.com/photos/32544885/pexels-photo-32544885.jpeg"
+          alt="Image"
+          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.8] "
+        />
+      </div>
     </div>
+  )
+      
   )
 }

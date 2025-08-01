@@ -12,6 +12,7 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from "@/components/ui/radio-group"
+import { group } from "console"
 
 export function LoginForm({
   className,
@@ -26,6 +27,8 @@ export function LoginForm({
   const [imagem, setImagem] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [group_id, setGroup_id] = useState("")
+
 
   useEffect(() => {
     if (error) {
@@ -43,8 +46,19 @@ export function LoginForm({
     event.preventDefault()
     setIsLoading(true)
     setError(null)
-
     try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/grupos/grupo-admin-id`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      })
+      const group_id_response = await res.json()
+      setGroup_id(group_id_response.grupo_id)
+      console.log(group_id)
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao solicitar o id do grupo")
+    }
+    try {
+      console.log("grupo id", group_id)
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/setup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,6 +69,7 @@ export function LoginForm({
           imagem,
           email,
           nivel: "admin", // O primeiro usuário é sempre administrador
+          grupo_id: group_id,
           ativo: true,
           senha,
         }),

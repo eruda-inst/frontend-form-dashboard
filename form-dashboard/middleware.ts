@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return redirect(request, "/login")
   }
 
-  const authStatusUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/status`
+  const authStatusUrl = `${process.env.NEXT_PUBLIC_API_URL}/setup/status`
 
   try {
     // Usamos event.waitUntil para que a verificação de status não bloqueie a resposta inicial.
