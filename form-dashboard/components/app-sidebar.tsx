@@ -147,6 +147,7 @@ type User = {
   name: string
   email: string
   avatar: string
+  grupo: string
 }
 
 export function AppSidebar({

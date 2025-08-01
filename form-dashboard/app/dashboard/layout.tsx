@@ -9,6 +9,7 @@ type User = {
   name: string
   email: string
   avatar: string
+  grupo: string
 }
 
 export default function DashboardLayout({
@@ -24,6 +25,7 @@ export default function DashboardLayout({
     name: "Guest",
     email: "guest@example.com",
     avatar: "", // Usar string vazia para que o AvatarFallback funcione
+    grupo: "Guest"
   }
 
   const user: User = userCookie ? JSON.parse(userCookie.value) : defaultUser

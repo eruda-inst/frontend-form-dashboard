@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     // Cenário 2: Usuário está autenticado (token válido).
     if (autenticado) {
       // Se ele tentar acessar uma página de autenticação, redireciona para o dashboard.
-      if (isAuthPage) {
+      if (isAuthPage || pathname != "/dashboard") {
         return redirect(request, "/dashboard")
       }
       // Caso contrário, permite o acesso.
