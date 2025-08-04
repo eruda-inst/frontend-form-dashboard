@@ -108,7 +108,7 @@ export default function LoginPage() {
             {/* O toast agora é acionado pelo useEffect. Não precisamos de nada aqui. */}
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
-            <Button className="w-full" type="submit" disabled={isLoading}>
+            <Button className="w-full cursor-pointer" type="submit" disabled={isLoading}>
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
             <p className="text-sm text-muted-foreground">

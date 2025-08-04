@@ -197,11 +197,11 @@ export function NavUser({
   }
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
+    <SidebarMenu >
+      <SidebarMenuItem >
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger className="cursor-pointer" asChild>
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"

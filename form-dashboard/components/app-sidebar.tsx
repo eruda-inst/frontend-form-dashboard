@@ -92,6 +92,7 @@ const navMain = [
     {
       title: "Configurações",
       url: "#",
+      isActive: true,
       icon: Settings2,
       items: [
         {
