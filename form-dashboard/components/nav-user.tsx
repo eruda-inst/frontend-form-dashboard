@@ -38,6 +38,8 @@ import {
   LogOut,
   UserRoundPen,
   Sparkles,
+  Check,
+  Loader2,
 } from "lucide-react"
 
 import {
@@ -93,6 +95,68 @@ export function NavUser({
   const [editedUsername, setEditedUsername] = useState(user.username)
   const [editedGenero, setEditedGenero] = useState(user.genero)
   const [editedImagem, setEditedImagem] = useState(user.avatar)
+
+
+  const [newPassword, setNewPassword] = useState("")
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+
+  const handleChangePassword = async () => {
+    if (!newPassword.trim()) {
+      toast.warning("A nova senha não pode estar em branco.")
+      return
+    }
+    setIsUpdatingPassword(true)
+    const accessToken = Cookies.get("accessToken")
+
+    if (!accessToken) {
+      toast.error("Sessão expirada. Por favor, faça login novamente.")
+      router.push("/login")
+      setIsUpdatingPassword(false)
+      return
+    }
+
+    try {
+      // Primeiro, obtemos o ID do usuário logado para garantir que temos o ID correto.
+      const meResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      if (!meResponse.ok) {
+        throw new Error("Não foi possível obter os dados do usuário atual.")
+      }
+      const currentUser = await meResponse.json()
+      const userId = currentUser.id
+
+      // Agora, fazemos a chamada PATCH para a rota específica de senha.
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/usuarios/${userId}/senha`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            senha: newPassword,
+          }),
+        }
+      )
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || "Falha ao atualizar a senha.")
+      }
+
+      toast.success("Senha atualizada com sucesso!")
+      setNewPassword("") // Limpa o campo de senha após o sucesso
+    } catch (error: any) {
+      toast.error("Erro ao atualizar senha", { description: error.message })
+    } finally {
+      setIsUpdatingPassword(false) // Reseta o estado de carregamento
+    }
+  }
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -339,6 +403,29 @@ export function NavUser({
                     </div>
                   </RadioGroup>
                 </div>
+              <div className="flex">
+              <Input
+                className="rounded-r-none"
+                type="password"
+                placeholder="Nova senha"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={isUpdatingPassword}
+              />
+              <Button
+                type="button" // Impede o envio do formulário principal
+                className="cursor-pointer border-l-0 rounded-l-none"
+                variant={"outline"}
+                onClick={handleChangePassword}
+                disabled={isUpdatingPassword || !newPassword.trim()}
+              >
+                {isUpdatingPassword ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Check />
+                )}
+              </Button>
+              </div>
               </div>
               <DialogFooter>
                 <Button type="submit" className="w-full cursor-pointer" disabled={isUpdating}>

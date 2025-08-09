@@ -1,6 +1,10 @@
 "use client"
 import { Badge } from "@/components/ui/badge"
 
+import { Input } from "@/components/ui/input"
+
+import { Check, Loader2 } from "lucide-react"
+
 import { useState, useEffect, useCallback } from "react"
 import Cookies from "js-cookie"
 import { useRouter } from "next/navigation"
@@ -46,6 +50,8 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)
   const [deactivatingUserId, setDeactivatingUserId] = useState<string | null>(null)
+  const [newPassword, setNewPassword] = useState("")
+  const [updatingPasswordUserId, setUpdatingPasswordUserId] = useState<string | null>(null)
 
   const getInitials = (name: string) => {
     if (!name) return ""
@@ -94,6 +100,52 @@ export default function UsersPage() {
 
   const handleUserCreated = () => {
     fetchUsers()
+  }
+
+  const handleChangePassword = async (userId: string) => {
+    if (!newPassword.trim()) {
+      toast.warning("A nova senha não pode estar em branco.")
+      return
+    }
+    setUpdatingPasswordUserId(userId)
+    const accessToken = Cookies.get("accessToken")
+
+    if (!accessToken) {
+      toast.error("Sessão expirada. Por favor, faça login novamente.")
+      router.push("/login")
+      setUpdatingPasswordUserId(null)
+      return
+    }
+
+    try {
+      // A API está sendo chamada para uma atualização parcial (PUT apenas com a senha).
+      // Isso é mais seguro e eficiente do que enviar todos os dados do usuário.
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/usuarios/${userId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            senha: newPassword,
+          }),
+        }
+      )
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || "Falha ao atualizar a senha.")
+      }
+
+      toast.success("Senha atualizada com sucesso!")
+      setNewPassword("") // Limpa o campo de senha após o sucesso
+    } catch (error: any) {
+      toast.error("Erro ao atualizar senha", { description: error.message })
+    } finally {
+      setUpdatingPasswordUserId(null) // Reseta o estado de carregamento
+    }
   }
 
   const handleDeactivateUser = async (userToDeactivate: User) => {
@@ -149,14 +201,21 @@ export default function UsersPage() {
 
   return (
     <>
-      <div className="grid auto-rows-min gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid auto-rows-min gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
         {users.map((user) => (
-          <Dialog>
+          <Dialog
+            key={user.id}
+            onOpenChange={(open) => {
+              if (!open) {
+                setNewPassword("")
+              }
+            }}
+          >
             <DialogTrigger asChild>
           <Card key={user.id} style={{backgroundImage: `url(${user.imagem})`}   } className="border-2 border-secondary  backdrop-blur-sm overflow-hidden p-0 bg-cover cursor-pointer flex flex-col transition-transform duration-300 ease-in-out hover:scale-105">
             <div className=" bg-transparent  backdrop-blur-2xl z-2 w-full h-full absolute"></div>
             <div className="bg-card opacity-60 z-1 w-full h-full absolute"></div>
-            <CardHeader  className="z-3 p-6 flex flex-col items-center text-center">
+            <CardHeader  className="z-3 p-6 flex flex-col items-left  text-center">
               <div className="flex">
                 <Avatar className="mb-2 h-20 w-20">
                   <AvatarImage src={user.imagem} alt={user.nome} />
@@ -195,6 +254,30 @@ export default function UsersPage() {
         <Badge variant="default">{user.grupo.nome}</Badge> 
       </DialogDescription>
     </DialogHeader>
+    <div className="flex">
+              <Input
+                className="rounded-r-none"
+                type="password"
+                placeholder="Nova senha"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={updatingPasswordUserId === user.id}
+              />
+              <Button
+                className="cursor-pointer border-l-0 rounded-l-none"
+                variant={"outline"}
+                onClick={() => handleChangePassword(user.id)}
+                disabled={
+                  updatingPasswordUserId === user.id || !newPassword.trim()
+                }
+              >
+                {updatingPasswordUserId === user.id ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Check />
+                )}
+              </Button>
+    </div>
     <Button
       className="cursor-pointer"
       variant={"destructive"}
