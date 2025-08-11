@@ -38,6 +38,7 @@ type User = {
   imagem: string
   genero: string
   nivel: string
+  ativo: boolean
   grupo: {
     id: string
     nome: string
@@ -192,7 +193,13 @@ export default function UsersPage() {
   return (
     <>
       <div className="grid auto-rows-min gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
-        {users.map((user) => (
+        {users.map((user) =>{
+          
+          console.log(user.ativo, user.nome)
+          if(!user.ativo){
+            return null
+          }
+          return (
           <Dialog
             key={user.id}
             onOpenChange={(open) => {
@@ -278,7 +285,9 @@ export default function UsersPage() {
     </Button>
   </DialogContent>
           </Dialog>
-        ))}
+        )
+        
+        })}
       </div>
       <CreateUserDialog onUserCreated={handleUserCreated} />
     </>

@@ -12,13 +12,13 @@ type User = {
   grupo: string
 }
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   const cookieStore = cookies()
-  const userCookie = cookieStore.get("user")
+  const userCookie = (await cookieStore).get("user")
 
   // Fornece um usuário padrão caso o cookie não exista
   const defaultUser: User = {

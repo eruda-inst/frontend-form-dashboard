@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 import { toast } from "sonner"
-import { Plus, Loader2 } from "lucide-react"
+import { Plus, Loader2, Check, ChevronsUpDown } from "lucide-react"
+ 
+
+
 
 import { Button } from "@/components/ui/button"
 import {
@@ -320,7 +323,7 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
                   />
                   <Button
                     type="button"
-                    variant={"outline"}
+                    variant={"default"}
                     className="h-8 cursor-pointer rounded-l-none"
                     onClick={handleCreateGroup}
                     disabled={isCreatingGroup || !newGroupName.trim()}
