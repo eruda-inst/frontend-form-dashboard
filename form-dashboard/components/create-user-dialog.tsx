@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 import { toast } from "sonner"
-import { Plus } from "lucide-react"
+import { Plus, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -23,6 +23,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -53,34 +54,37 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
   // Estado para a lista de grupos
   const [grupos, setGrupos] = useState<Group[]>([])
   const [isLoadingGroups, setIsLoadingGroups] = useState(false)
+  const [newGroupName, setNewGroupName] = useState("")
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false)
 
   // Busca os grupos quando o diálogo é aberto
+  const fetchGroups = useCallback(async () => {
+    setIsLoadingGroups(true)
+    const accessToken = Cookies.get("accessToken")
+    if (!accessToken) {
+      toast.error("Sessão expirada.")
+      router.push("/login")
+      return
+    }
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/grupos/`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      if (!res.ok) throw new Error("Falha ao buscar grupos.")
+      const data: Group[] = await res.json()
+      setGrupos(data)
+    } catch (error: any) {
+      toast.error("Erro ao carregar grupos", { description: error.message })
+    } finally {
+      setIsLoadingGroups(false)
+    }
+  }, [router])
+
   useEffect(() => {
     if (isOpen) {
-      const fetchGroups = async () => {
-        setIsLoadingGroups(true)
-        const accessToken = Cookies.get("accessToken")
-        if (!accessToken) {
-          toast.error("Sessão expirada.")
-          router.push("/login")
-          return
-        }
-        try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/grupos/`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          })
-          if (!res.ok) throw new Error("Falha ao buscar grupos.")
-          const data: Group[] = await res.json()
-          setGrupos(data)
-        } catch (error: any) {
-          toast.error("Erro ao carregar grupos", { description: error.message })
-        } finally {
-          setIsLoadingGroups(false)
-        }
-      }
       fetchGroups()
     }
-  }, [isOpen, router])
+  }, [isOpen, fetchGroups])
 
   const resetForm = () => {
     setNome("")
@@ -143,6 +147,45 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
       })
     } finally {
       setIsCreating(false)
+    }
+  }
+
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) {
+      toast.warning("O nome do grupo não pode estar em branco.")
+      return
+    }
+    setIsCreatingGroup(true)
+    const accessToken = Cookies.get("accessToken")
+    if (!accessToken) {
+      toast.error("Sessão expirada.")
+      router.push("/login")
+      setIsCreatingGroup(false)
+      return
+    }
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/grupos/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ nome: newGroupName }),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || "Falha ao criar o grupo.")
+      }
+
+      toast.success(`Grupo "${newGroupName}" criado com sucesso!`)
+      setNewGroupName("") // Limpa o input
+      await fetchGroups() // Re-busca os grupos para atualizar a lista
+    } catch (error: any) {
+      toast.error("Erro ao criar grupo", { description: error.message })
+    } finally {
+      setIsCreatingGroup(false)
     }
   }
 
@@ -213,8 +256,8 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="imagem" className="text-right">
-              Imagem (URL)
+            <Label htmlFor="imagem" className="text-left">
+              Imagem URL
             </Label>
             <Input
               id="imagem"
@@ -232,11 +275,11 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
             >
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="masculino" id="g-masc" />
-                <Label htmlFor="g-masc">Masc</Label>
+                <Label htmlFor="g-masc">Masculino</Label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="feminino" id="g-fem" />
-                <Label htmlFor="g-fem">Fem</Label>
+                <Label htmlFor="g-fem">Feminino</Label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="outro" id="g-outro" />
@@ -249,7 +292,7 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
               Grupo
             </Label>
             <Select onValueChange={setGrupoId} value={grupoId} required>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger className="col-span-3 w-full">
                 <SelectValue
                   placeholder={isLoadingGroups ? "Carregando..." : "Selecione um grupo"}
                 />
@@ -260,6 +303,35 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
                     {grupo.nome}
                   </SelectItem>
                 ))}
+                <SelectSeparator />
+                <div className="flex p-1">
+                  <Input
+                    placeholder="Novo Grupo"
+                    className="h-8 rounded-r-none border-r-0 focus-visible:ring-0"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    disabled={isCreatingGroup}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        handleCreateGroup()
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant={"outline"}
+                    className="h-8 cursor-pointer rounded-l-none"
+                    onClick={handleCreateGroup}
+                    disabled={isCreatingGroup || !newGroupName.trim()}
+                  >
+                    {isCreatingGroup ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </SelectContent>
             </Select>
           </div>
