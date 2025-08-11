@@ -163,21 +163,11 @@ export default function UsersPage() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/usuarios/${userToDeactivate.id}`,
         {
-          method: "PUT",
+          method: "DELETE",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({
-            nome: userToDeactivate.nome,
-            email: userToDeactivate.email,
-            username: userToDeactivate.username,
-            nivel: userToDeactivate.nivel,
-            genero: userToDeactivate.genero,
-            imagem: userToDeactivate.imagem,
-            grupo_id: userToDeactivate.grupo.id,
-            ativo: false, // A mudança principal para desativar
-          }),
         }
       )
 

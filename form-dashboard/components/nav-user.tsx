@@ -322,10 +322,7 @@ export function NavUser({
                 <CreditCard />
                 Billing
                 </DropdownMenuItem> */}
-              <DropdownMenuItem className="opacity-50">
-              <UserRoundPen />
-                Conta
-              </DropdownMenuItem>
+              
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem className=" cursor-pointer"
