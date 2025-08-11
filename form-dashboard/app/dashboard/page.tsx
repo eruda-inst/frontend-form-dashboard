@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { useNavigation } from "@/components/navigation-provider"
 import UsersPage from "@/components/pages/users-page/users-page"
+import GroupsPage from "@/components/pages/groups-page/groups-page"
 
 export default function Page() {
   const { activeTitle } = useNavigation()
@@ -26,14 +27,16 @@ export default function Page() {
           <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
         </>
       )
-      case "Usuários e Grupos":
+      case "Usuários":
         return <UsersPage />
+      case "Grupos e Permissões":
+        return <GroupsPage/>
       default:
-        return (
-          <div className="flex h-full min-h-[50vh] items-center justify-center rounded-xl border border-dashed">
+          return (
+            <div className="flex h-full min-h-[50vh] items-center justify-center rounded-xl border border-dashed">
             <span className="text-xl font-medium">{activeTitle}</span>
           </div>
-        )
+          )
     }
   }
 

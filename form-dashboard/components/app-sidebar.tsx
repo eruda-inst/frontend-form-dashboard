@@ -96,15 +96,15 @@ const navMain = [
       icon: Settings2,
       items: [
         {
-          title: "Usuários e Grupos",
+          title: "Usuários",
+          url: "#",
+        },
+        {
+          title: "Grupos e Permissões",
           url: "#",
         },
         {
           title: "Integrações",
-          url: "#",
-        },
-        {
-          title: "Rotinas e Gatilhos",
           url: "#",
         },
         {

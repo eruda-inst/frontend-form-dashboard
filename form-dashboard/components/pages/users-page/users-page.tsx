@@ -192,7 +192,7 @@ export default function UsersPage() {
 
   return (
     <>
-      <div className="grid auto-rows-min gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
+      <div className="flex flex-col auto-rows-min gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
         {users.map((user) =>{
           
           console.log(user.ativo, user.nome)
@@ -209,7 +209,7 @@ export default function UsersPage() {
             }}
           >
             <DialogTrigger asChild>
-          <Card key={user.id} style={{backgroundImage: `url(${user.imagem})`}   } className="border-2 border-secondary  backdrop-blur-sm overflow-hidden p-0 bg-cover cursor-pointer flex flex-col transition-transform duration-300 ease-in-out hover:scale-105">
+          <Card key={user.id} style={{backgroundImage: `url(${user.imagem})`}   } className="border-2 border-secondary  backdrop-blur-sm overflow-hidden p-0 bg-cover cursor-pointer flex flex-col transition-transform duration-300 ease-in-out hover:scale-101">
             <div className=" bg-transparent  backdrop-blur-2xl z-2 w-full h-full absolute"></div>
             <div className="bg-card opacity-60 z-1 w-full h-full absolute"></div>
             <CardHeader  className="z-3 p-6 flex flex-col items-left  text-center">
