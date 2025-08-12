@@ -9,9 +9,10 @@ import {
   PieChart,
   Send,
   Settings2,
-  SquareTerminal,
+  ClipboardPenLine,
   LayoutDashboard
 } from "lucide-react"
+import type { User } from "@/app/types/user"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -30,21 +31,13 @@ const navMain = [
       title: "Dashboard",
       url: "#",
       icon: LayoutDashboard,
+      isActive: true
+    },
+    {
+      title: "Formulários",
+      url: "#",
+      icon: ClipboardPenLine,
       isActive: true,
-      items: [
-        {
-          title: "Form 1",
-          url: "#",
-        },
-        {
-          title: "Pós atendimento",
-          url: "#",
-        },
-        {
-          title: "Ordem de serviço",
-          url: "#",
-        },
-      ],
     },
     // {
     //   title: "Models",
@@ -143,13 +136,6 @@ const projects = [
       icon: Map,
     },
   ]
-
-type User = {
-  name: string
-  email: string
-  avatar: string
-  grupo: string
-}
 
 export function AppSidebar({
   user,

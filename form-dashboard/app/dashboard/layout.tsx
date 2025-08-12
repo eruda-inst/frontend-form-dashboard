@@ -1,16 +1,9 @@
 import { cookies } from "next/headers"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import type { User } from "@/app/types/user"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { NavigationProvider } from "@/components/navigation-provider"
-
-// Define um tipo para o objeto do usuário para clareza
-type User = {
-  name: string
-  email: string
-  avatar: string
-  grupo: string
-}
 
 export default async function DashboardLayout({
   children,
@@ -22,10 +15,15 @@ export default async function DashboardLayout({
 
   // Fornece um usuário padrão caso o cookie não exista
   const defaultUser: User = {
-    name: "Guest",
+    id: "default",
+    name: "Convidado",
     email: "guest@example.com",
-    avatar: "", // Usar string vazia para que o AvatarFallback funcione
-    grupo: "Guest"
+    avatar: "",
+    grupo: "Convidado",
+    username: "guest",
+    genero: "outro",
+    grupo_id: "default",
+    nivel: "user",
   }
 
   const user: User = userCookie ? JSON.parse(userCookie.value) : defaultUser

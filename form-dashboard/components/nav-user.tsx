@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import type { User } from "@/app/types/user"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 
@@ -63,21 +64,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    id: string
-    name: string
-    email: string
-    avatar: string
-    grupo: string
-    username: string
-    genero: string
-    grupo_id: string
-    nivel: string
-  }
-}) {
+export function NavUser({ user }: { user: User }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
 

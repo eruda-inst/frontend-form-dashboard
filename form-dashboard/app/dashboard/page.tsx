@@ -10,6 +10,7 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { useNavigation } from "@/components/navigation-provider"
 import UsersPage from "@/components/pages/users-page/users-page"
 import GroupsPage from "@/components/pages/groups-page/groups-page"
+import FormsPage from "@/components/pages/forms-page/forms-page"
 
 export default function Page() {
   const { activeTitle } = useNavigation()
@@ -31,6 +32,9 @@ export default function Page() {
         return <UsersPage />
       case "Grupos e Permissões":
         return <GroupsPage/>
+      case "Formulários":
+        return <FormsPage/>
+
       default:
           return (
             <div className="flex h-full min-h-[50vh] items-center justify-center rounded-xl border border-dashed">
