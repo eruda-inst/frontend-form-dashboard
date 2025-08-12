@@ -48,8 +48,11 @@ interface CreateFormDialogProps {
 export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  const [step, setStep] = useState(1)
+  const [createdFormId, setCreatedFormId] = useState<string | null>(null)
   const [perguntas, setPerguntas] = useState<Pergunta[]>([])
   const [novaPerguntaTexto, setNovaPerguntaTexto] = useState("")
+  const [isFinishing, setIsFinishing] = useState(false)
   const [novaPerguntaTipo, setNovaPerguntaTipo] =
     useState<TipoPergunta>("texto-curto")
   const [novaAlternativa, setNovaAlternativa] = useState<{
@@ -61,6 +64,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    getValues,
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createFormSchema),
   })
@@ -70,6 +74,10 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       toast.warning("O texto da pergunta não pode estar em branco.")
       return
     }
+
+    // TODO: Implementar WebSocket para enviar a nova pergunta.
+    // A conexão seria algo como: /ws/formularios/{createdFormId}
+    // O payload seria: { pergunta: novaPerguntaTexto, tipo: novaPerguntaTipo }
 
     // A construção explícita do objeto `newQuestion` é necessária porque o TypeScript
     // tem dificuldade em inferir corretamente a união discriminada `Pergunta`
@@ -146,11 +154,6 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       return
     }
 
-    // Remove o ID temporário antes de enviar para o backend
-    const perguntasParaEnviar = perguntas.map(({ id, ...rest }) => {
-      return rest
-    })
-
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/formularios/`,
@@ -162,7 +165,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
           },
           body: JSON.stringify({
             ...data,
-            perguntas: perguntasParaEnviar,
+            perguntas: [], // Na primeira etapa, sempre enviamos perguntas vazias
           }),
         }
       )
@@ -172,13 +175,61 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
         throw new Error(errorData.detail || "Falha ao criar o formulário.")
       }
 
-      toast.success(`Formulário "${data.titulo}" criado com sucesso!`)
-      reset()
-      setPerguntas([])
+      const newForm = await res.json()
+      setCreatedFormId(newForm.id)
+      setStep(2) // Avança para a etapa de adicionar perguntas
+
+      toast.success(`Formulário "${data.titulo}" criado!`, {
+        description: "Agora adicione as perguntas.",
+      })
+    } catch (error: any) {
+      toast.error("Erro ao criar formulário", { description: error.message })
+    }
+  }
+
+  const handleFinish = async () => {
+    if (!createdFormId) {
+      toast.error("ID do formulário não encontrado. Não é possível salvar as perguntas.")
+      return
+    }
+    setIsFinishing(true)
+    const accessToken = Cookies.get("accessToken")
+    if (!accessToken) {
+      toast.error("Sessão expirada. Por favor, faça login novamente.")
+      router.push("/login")
+      setIsFinishing(false)
+      return
+    }
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/formularios/${createdFormId}`,
+        {
+          method: "PUT", // Ou PATCH, dependendo da sua API
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            titulo: getValues("titulo"),
+            descricao: getValues("descricao"),
+            perguntas: perguntas.map(({ id, ...rest }) => rest),
+          }),
+        }
+      )
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || "Falha ao salvar as perguntas.")
+      }
+
+      toast.success("Formulário salvo com sucesso!")
       onFormCreated()
       setIsOpen(false)
     } catch (error: any) {
-      toast.error("Erro ao criar formulário", { description: error.message })
+      toast.error("Erro ao finalizar", { description: error.message })
+    } finally {
+      setIsFinishing(false)
     }
   }
 
@@ -189,6 +240,8 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
         setIsOpen(open)
         if (!open) {
           setPerguntas([])
+          setStep(1)
+          setCreatedFormId(null)
           reset()
         }
       }}
@@ -207,144 +260,113 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
             Preencha os campos abaixo para criar um novo formulário.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(handleCreateForm)} className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="titulo">Título</Label>
-            <Input id="titulo" placeholder="Ex: Pesquisa de Satisfação" {...register("titulo")} />
-            {errors.titulo && (<p className="mt-1 text-sm text-red-500">{errors.titulo.message}</p>)}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="descricao">Descrição</Label>
-            <Textarea
-              id="descricao"
-              placeholder="Descreva o objetivo deste formulário."
-              {...register("descricao")}
-            />
-            {errors.descricao && (
-              <p className="mt-1 text-sm text-red-500">
-                {errors.descricao.message}
-              </p>
-            )}
-          </div>
 
-          <div className="space-y-4 pt-4">
-            <div className="border-t pt-4">
-              <h3 className="font-medium text-lg">Perguntas</h3>
+        {step === 1 && (
+          <form onSubmit={handleSubmit(handleCreateForm)} className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="titulo">Título</Label>
+              <Input id="titulo" placeholder="Ex: Pesquisa de Satisfação" {...register("titulo")} />
+              {errors.titulo && (<p className="mt-1 text-sm text-red-500">{errors.titulo.message}</p>)}
             </div>
-
-            {/* Lista de perguntas adicionadas */}
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-              {perguntas.map((pergunta, index) => (
-                <div
-                  key={pergunta.id}
-                  className="p-3 border rounded-lg space-y-3 bg-muted/50"
-                >
-                  <div className="flex justify-between items-start">
-                    <Label className="font-normal text-base">
-                      {index + 1}. {pergunta.pergunta}
-                    </Label>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0"
-                      onClick={() => handleRemovePergunta(pergunta.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {"opcoes" in pergunta && (
-                    <div className="pl-4 space-y-2">
-                      {pergunta.opcoes.map((opcao: string, opIndex: number) => (
-                        <div key={opIndex} className="flex items-center gap-2">
-                          <Badge variant="secondary" className="font-normal">
-                            {opcao}
-                          </Badge>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAlternativa(pergunta.id, opIndex)}
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                      <div className="flex">
-                        <Input
-                          className="rounded-r-none h-8"
-                          type="text"
-                          placeholder="Nova alternativa"
-                          value={novaAlternativa[pergunta.id] || ""}
-                          onChange={(e) =>
-                            setNovaAlternativa((prev) => ({
-                              ...prev,
-                              [pergunta.id]: e.target.value,
-                            }))
-                          }
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && handleAddAlternativa(pergunta.id)
-                          }
-                        />
-                        <Button
-                          type="button"
-                          className="cursor-pointer border-l-0 rounded-l-none h-8"
-                          variant={"outline"}
-                          onClick={() => handleAddAlternativa(pergunta.id)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+            <div className="grid gap-2">
+              <Label htmlFor="descricao">Descrição</Label>
+              <Textarea
+                id="descricao"
+                placeholder="Descreva o objetivo deste formulário."
+                {...register("descricao")}
+              />
+              {errors.descricao && (
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.descricao.message}
+                </p>
+              )}
             </div>
-
-            {/* Adicionar nova pergunta */}
-            <div className="flex items-end gap-2 border-t pt-4">
-              <div className="grid gap-1.5 flex-1">
-                <Label htmlFor="nova-pergunta">Texto da Pergunta</Label>
-                <Input
-                  id="nova-pergunta"
-                  type="text"
-                  placeholder="Ex: Qual sua cor favorita?"
-                  value={novaPerguntaTexto}
-                  onChange={(e) => setNovaPerguntaTexto(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddPergunta()}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Tipo</Label>
-                <Select
-                  value={novaPerguntaTipo}
-                  onValueChange={(value: TipoPergunta) => setNovaPerguntaTipo(value)}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Tipo de pergunta" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="texto-curto">Texto Curto</SelectItem>
-                    <SelectItem value="texto-longo">Texto Longo</SelectItem>
-                    <SelectItem value="multipla-escolha">Múltipla Escolha</SelectItem>
-                    <SelectItem value="caixa-de-selecao">Caixa de Seleção</SelectItem>
-                    <SelectItem value="lista-suspensa">Lista Suspensa</SelectItem>
-                    <SelectItem value="data">Data</SelectItem>
-                    <SelectItem value="numero">Número</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="button" onClick={handleAddPergunta}>
-                <Plus className="mr-2 h-4 w-4" /> Adicionar
+            <DialogFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Criar e adicionar perguntas
               </Button>
-            </div>
-          </div>
+            </DialogFooter>
+          </form>
+        )}
 
-          <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (<Loader2 className="mr-2 h-4 w-4 animate-spin" />) : null}
-              {isSubmitting ? "Criando..." : "Criar Formulário"}
-            </Button>
-          </DialogFooter>
-        </form>
+        {step === 2 && (
+          <div className="grid gap-4 py-4">
+            <div className="space-y-4">
+              <div className="border-t pt-4">
+                <h3 className="font-medium text-lg">Perguntas</h3>
+              </div>
+
+              {/* Lista de perguntas adicionadas */}
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                {perguntas.map((pergunta, index) => (
+                  <div key={pergunta.id} className="p-3 border rounded-lg space-y-3 bg-muted/50">
+                    <div className="flex justify-between items-start">
+                      <Label className="font-normal text-base">
+                        {index + 1}. {pergunta.pergunta}
+                      </Label>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemovePergunta(pergunta.id)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {"opcoes" in pergunta && (
+                      <div className="pl-4 space-y-2">
+                        {pergunta.opcoes.map((opcao: string, opIndex: number) => (
+                          <div key={opIndex} className="flex items-center gap-2">
+                            <Badge variant="secondary" className="font-normal">{opcao}</Badge>
+                            <button type="button" onClick={() => handleRemoveAlternativa(pergunta.id, opIndex)} className="text-muted-foreground hover:text-destructive">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                        <div className="flex">
+                          <Input className="rounded-r-none h-8" type="text" placeholder="Nova alternativa" value={novaAlternativa[pergunta.id] || ""} onChange={(e) => setNovaAlternativa((prev) => ({ ...prev, [pergunta.id]: e.target.value, }))} onKeyDown={(e) => e.key === "Enter" && handleAddAlternativa(pergunta.id)} />
+                          <Button type="button" className="cursor-pointer border-l-0 rounded-l-none h-8" variant={"outline"} onClick={() => handleAddAlternativa(pergunta.id)}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Adicionar nova pergunta */}
+              <div className="flex items-end gap-2 border-t pt-4">
+                <div className="grid gap-1.5 flex-1">
+                  <Label htmlFor="nova-pergunta">Texto da Pergunta</Label>
+                  <Input id="nova-pergunta" type="text" placeholder="Ex: Qual sua cor favorita?" value={novaPerguntaTexto} onChange={(e) => setNovaPerguntaTexto(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddPergunta()} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Tipo</Label>
+                  <Select value={novaPerguntaTipo} onValueChange={(value: TipoPergunta) => setNovaPerguntaTipo(value)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Tipo de pergunta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="texto-curto">Texto Curto</SelectItem>
+                      <SelectItem value="texto-longo">Texto Longo</SelectItem>
+                      <SelectItem value="multipla-escolha">Múltipla Escolha</SelectItem>
+                      <SelectItem value="caixa-de-selecao">Caixa de Seleção</SelectItem>
+                      <SelectItem value="lista-suspensa">Lista Suspensa</SelectItem>
+                      <SelectItem value="data">Data</SelectItem>
+                      <SelectItem value="numero">Número</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="button" onClick={handleAddPergunta}>
+                  <Plus className="mr-2 h-4 w-4" /> Adicionar
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleFinish} disabled={isFinishing}>
+                {isFinishing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Finalizar
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

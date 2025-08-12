@@ -2,8 +2,9 @@ import { cookies } from "next/headers"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import type { User } from "@/app/types/user"
-import { SidebarProvider } from "@/components/ui/sidebar"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { NavigationProvider } from "@/components/navigation-provider"
+import { DashboardHeader } from "@/components/dashboard-header"
 
 export default async function DashboardLayout({
   children,
@@ -32,7 +33,10 @@ export default async function DashboardLayout({
     <SidebarProvider>
       <NavigationProvider>
         <AppSidebar user={user} />
-        {children}
+        <SidebarInset>
+          <DashboardHeader />
+          <main className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</main>
+        </SidebarInset>
       </NavigationProvider>
     </SidebarProvider>
   )

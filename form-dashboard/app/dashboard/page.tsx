@@ -1,19 +1,23 @@
 "use client"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+
+import { useEffect } from "react"
 import { useNavigation } from "@/components/navigation-provider"
 import UsersPage from "@/components/pages/users-page/users-page"
 import GroupsPage from "@/components/pages/groups-page/groups-page"
 import FormsPage from "@/components/pages/forms-page/forms-page"
 
 export default function Page() {
-  const { activeTitle } = useNavigation()
+  const { activeTitle, setBreadcrumbs } = useNavigation()
+
+  useEffect(() => {
+    // Define o breadcrumb para a página principal do dashboard
+    // ou para a seção ativa.
+    if (activeTitle === "Dashboard") {
+      setBreadcrumbs([{ title: "Dashboard" }])
+    } else {
+      setBreadcrumbs([{ title: activeTitle }])
+    }
+  }, [activeTitle, setBreadcrumbs])
 
   const renderContent = () => {
     switch (activeTitle) {
@@ -44,30 +48,5 @@ export default function Page() {
     }
   }
 
-  return (
-    <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2">
-        <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              {activeTitle !== "Dashboard" && (
-                <>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbPage>{activeTitle}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                  {/* <BreadcrumbSeparator className="hidden md:block" /> */}
-                </>
-              )}
-              {/* <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
-              </BreadcrumbItem> */}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </header>
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{renderContent()}</div>
-    </SidebarInset>
-  )
+  return <>{renderContent()}</>
 }

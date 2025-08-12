@@ -183,16 +183,13 @@ export function NavUser({ user }: { user: User }) {
         },
       }
     )
-    const refreshedUser = await userCurrentDataUpdate.json()
-    user.id = refreshedUser.id
-
-
-
+    if (!userCurrentDataUpdate.ok) {
+      throw new Error("Não foi possível obter os dados do usuário atual para atualização.")
+    }
+    const refreshedUser = await userCurrentDataUpdate.json();
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/usuarios/${user.id}`,
-        {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/usuarios/${refreshedUser.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
