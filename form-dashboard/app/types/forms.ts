@@ -1,28 +1,35 @@
 export type TipoPergunta =
-  | "texto-curto"
+  | "texto_simples"
   | "texto-longo"
-  | "multipla-escolha"
-  | "caixa-de-selecao"
-  | "lista-suspensa"
+  | "multipla_escolha"
+  | "caixa_selecao"
   | "data"
   | "numero"
+  | "nps"
 
 interface PerguntaBase {
   id: string
   pergunta: string
   tipo: TipoPergunta
+  obrigatoria: boolean
 }
 
-export interface PerguntaSemOpcoes extends PerguntaBase {
-  tipo: "texto-curto" | "texto-longo" | "data" | "numero"
+export interface PerguntaTexto extends PerguntaBase {
+  tipo: "texto_simples" | "texto-longo" | "data" | "numero"
+}
+
+export interface PerguntaNPS extends PerguntaBase {
+  tipo: "nps"
+  escala_min: number
+  escala_max: number
 }
 
 export interface PerguntaComOpcoes extends PerguntaBase {
-  tipo: "multipla-escolha" | "caixa-de-selecao" | "lista-suspensa"
-  opcoes: string[]
+  tipo: "multipla_escolha" | "caixa_selecao"
+  opcoes: { texto: string }[]
 }
 
-export type Pergunta = PerguntaSemOpcoes | PerguntaComOpcoes
+export type Pergunta = PerguntaTexto | PerguntaNPS | PerguntaComOpcoes
 
 export interface Form {
   id: string

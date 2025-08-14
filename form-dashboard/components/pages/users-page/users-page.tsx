@@ -65,7 +65,7 @@ export default function UsersPage() {
 
   const fetchUsers = useCallback(async () => {
     setIsLoadingUsers(true)
-    const accessToken = Cookies.get("accessToken")
+      const accessToken = Cookies.get("access_token")
 
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
@@ -109,7 +109,7 @@ export default function UsersPage() {
       return
     }
     setUpdatingPasswordUserId(userId)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
 
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
@@ -151,7 +151,7 @@ export default function UsersPage() {
 
   const handleDeactivateUser = async (userToDeactivate: User) => {
     setDeactivatingUserId(userToDeactivate.id)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
 
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")

@@ -54,11 +54,11 @@ export async function POST(request: Request) {
     const user = { name: `${firstName} ${lastName}`, email, avatar: image };
     // O accessToken precisa ser acessível pelo middleware e também pelo JavaScript
     // do lado do cliente para chamadas de API. Por isso, NÃO é httpOnly.
-    cookies().set("accessToken", accessToken, { secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 15, httpOnly: false }); // 15 minutos
+    cookies().set("access_token", accessToken, { secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 15, httpOnly: false }); // 15 minutos
     // O refreshToken é usado para obter um novo accessToken sem que o usuário
     // precise fazer login novamente. Ele tem uma vida longa e é armazenado
     // de forma segura como um cookie httpOnly.
-    cookies().set("refreshToken", refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7 }); // 7 dias
+    cookies().set("refresh_token", refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7 }); // 7 dias
     // O cookie 'user' também não precisa ser httpOnly, pois pode ser útil para
     // exibir informações do usuário na UI sem uma chamada de API.
     cookies().set("user", JSON.stringify(user), { secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7, httpOnly: false });

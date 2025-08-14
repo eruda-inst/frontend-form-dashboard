@@ -68,7 +68,7 @@ export function EditGroupDialog({
 
   const fetchPermissions = useCallback(async () => {
     setIsLoadingPermissions(true)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
     if (!accessToken) {
       toast.error("Sessão expirada.")
       router.push("/login")
@@ -104,7 +104,7 @@ export function EditGroupDialog({
 
   const handleUpdateGroup = async () => {
     setIsSubmitting(true)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
     if (!accessToken) {
       toast.error("Sessão expirada.")
       router.push("/login")

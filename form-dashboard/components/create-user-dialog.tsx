@@ -63,7 +63,7 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
   // Busca os grupos quando o diálogo é aberto
   const fetchGroups = useCallback(async () => {
     setIsLoadingGroups(true)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
     if (!accessToken) {
       toast.error("Sessão expirada.")
       router.push("/login")
@@ -103,7 +103,7 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
     event.preventDefault()
     setIsCreating(true)
 
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
     if (!accessToken) {
       toast.error("Sessão expirada.")
       router.push("/login")
@@ -159,7 +159,7 @@ export function CreateUserDialog({ onUserCreated }: CreateUserDialogProps) {
       return
     }
     setIsCreatingGroup(true)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
     if (!accessToken) {
       toast.error("Sessão expirada.")
       router.push("/login")

@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 import { toast } from "sonner"
-import { Plus, Loader2, X, Check } from "lucide-react"
+import { Plus, Loader2, X } from "lucide-react"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { Checkbox } from "@/components/ui/checkbox"
 import type { Pergunta, TipoPergunta } from "@/app/types/forms"
 
 import { Badge } from "@/components/ui/badge"
@@ -53,11 +54,18 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
   const [perguntas, setPerguntas] = useState<Pergunta[]>([])
   const [novaPerguntaTexto, setNovaPerguntaTexto] = useState("")
   const [isFinishing, setIsFinishing] = useState(false)
-  const [novaPerguntaTipo, setNovaPerguntaTipo] =
-    useState<TipoPergunta>("texto-curto")
+  const [novaPerguntaObrigatoria, setNovaPerguntaObrigatoria] = useState(true)
+  const [tiposPergunta, setTiposPergunta] = useState<
+    { value: string; label: string }[]
+  >([])
+  const [isLoadingTipos, setIsLoadingTipos] = useState(true)
+  const [novaPerguntaTipo, setNovaPerguntaTipo] = useState<TipoPergunta>("texto_simples")
   const [novaAlternativa, setNovaAlternativa] = useState<{
     [key: string]: string
   }>({})
+  const [npsEscala, setNpsEscala] = useState({ min: 0, max: 10 })
+
+  const ws = useRef<WebSocket | null>(null)
 
   const {
     register,
@@ -69,42 +77,124 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
     resolver: zodResolver(createFormSchema),
   })
 
+  useEffect(() => {
+    if (step === 2 && createdFormId && !ws.current) {
+      const accessToken = Cookies.get("access_token")
+      if (!accessToken) {
+        toast.error("Sessão expirada. Por favor, faça login novamente.")
+        router.push("/login")
+        return
+      }
+
+      const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL
+      if (!wsBaseUrl) {
+        console.error("A variável de ambiente NEXT_PUBLIC_WS_URL não está definida.")
+        toast.error("Erro de configuração", {
+          description: "A URL do WebSocket não foi configurada corretamente.",
+        })
+        return
+      }
+
+      const wsUrl = `${wsBaseUrl}/ws/formularios/${createdFormId}`
+      const socket = new WebSocket(wsUrl)
+
+      socket.onopen = () => {
+        console.log("WebSocket conectado.")
+        // A autenticação é feita via cookies enviados na requisição de handshake.
+        toast.info("Conectado para edição em tempo real.")
+      }
+      socket.onclose = () => {
+        console.log("WebSocket desconectado.")
+      }
+      socket.onerror = (error) => {
+        console.error("WebSocket erro:", error)
+        toast.error("Erro na conexão em tempo real.")
+      }
+
+      ws.current = socket
+
+      return () => {
+        ws.current?.close()
+        ws.current = null
+      }
+    }
+  }, [step, createdFormId, router])
+
+  const fetchTiposPergunta = useCallback(async () => {
+    setIsLoadingTipos(true)
+    try {
+      const accessToken = Cookies.get("access_token")
+      if (!accessToken) {
+        toast.error("Sessão expirada.")
+        router.push("/login")
+        return
+      }
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/tipos-pergunta`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      )
+      if (!res.ok) {
+        throw new Error("Falha ao buscar os tipos de pergunta.")
+      }
+      const data = await res.json()
+      setTiposPergunta(data)
+    } catch (error) {
+      let description = "Ocorreu um erro desconhecido."
+      if (error instanceof Error) {
+        description = error.message
+      }
+      toast.error("Erro ao carregar tipos de pergunta", { description })
+    } finally {
+      setIsLoadingTipos(false)
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (isOpen) fetchTiposPergunta()
+  }, [isOpen, fetchTiposPergunta])
+
   const handleAddPergunta = () => {
     if (!novaPerguntaTexto.trim()) {
       toast.warning("O texto da pergunta não pode estar em branco.")
       return
     }
 
-    // TODO: Implementar WebSocket para enviar a nova pergunta.
-    // A conexão seria algo como: /ws/formularios/{createdFormId}
-    // O payload seria: { pergunta: novaPerguntaTexto, tipo: novaPerguntaTipo }
-
-    // A construção explícita do objeto `newQuestion` é necessária porque o TypeScript
-    // tem dificuldade em inferir corretamente a união discriminada `Pergunta`
-    // quando um spread condicional `{...()}` é usado. Esta abordagem garante
-    // que o objeto corresponda perfeitamente a `PerguntaComOpcoes` ou `PerguntaSemOpcoes`.
     let newQuestion: Pergunta
     if (
-      novaPerguntaTipo === "caixa-de-selecao" ||
-      novaPerguntaTipo === "lista-suspensa" ||
-      novaPerguntaTipo === "multipla-escolha"
+      novaPerguntaTipo === "caixa_selecao" ||
+      novaPerguntaTipo === "multipla_escolha"
     ) {
       newQuestion = {
         id: `temp-${Date.now()}`,
         pergunta: novaPerguntaTexto,
         tipo: novaPerguntaTipo,
+        obrigatoria: novaPerguntaObrigatoria,
         opcoes: [],
+      }
+    } else if (novaPerguntaTipo === "nps") {
+      newQuestion = {
+        id: `temp-${Date.now()}`,
+        pergunta: novaPerguntaTexto,
+        tipo: novaPerguntaTipo,
+        obrigatoria: novaPerguntaObrigatoria,
+        escala_min: npsEscala.min,
+        escala_max: npsEscala.max,
       }
     } else {
       newQuestion = {
         id: `temp-${Date.now()}`,
         pergunta: novaPerguntaTexto,
         tipo: novaPerguntaTipo,
+        obrigatoria: novaPerguntaObrigatoria,
       }
     }
 
     setPerguntas([...perguntas, newQuestion])
-    setNovaPerguntaTexto("") // Limpa o input
+    setNovaPerguntaTexto("")
   }
 
   const handleRemovePergunta = (perguntaId: string) => {
@@ -123,7 +213,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
         if (p.id === perguntaId && "opcoes" in p) {
           return {
             ...p,
-            opcoes: [...p.opcoes, alternativaText],
+            opcoes: [...p.opcoes, { texto: alternativaText }],
           }
         }
         return p
@@ -137,7 +227,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       perguntas.map((p) => {
         if (p.id === perguntaId && "opcoes" in p) {
           const novasOpcoes = p.opcoes.filter(
-            (_: string, index: number) => index !== indexToRemove
+            (_, index: number) => index !== indexToRemove
           )
           return { ...p, opcoes: novasOpcoes }
         }
@@ -147,7 +237,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
   }
 
   const handleCreateForm = async (data: CreateFormValues) => {
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
       router.push("/login")
@@ -182,52 +272,58 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       toast.success(`Formulário "${data.titulo}" criado!`, {
         description: "Agora adicione as perguntas.",
       })
-    } catch (error: any) {
-      toast.error("Erro ao criar formulário", { description: error.message })
+    } catch (error) {
+      let description = "Ocorreu um erro desconhecido."
+      if (error instanceof Error) {
+        description = error.message
+      }
+      toast.error("Erro ao criar formulário", { description })
     }
   }
 
   const handleFinish = async () => {
-    if (!createdFormId) {
-      toast.error("ID do formulário não encontrado. Não é possível salvar as perguntas.")
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      toast.error("A conexão para edição não está ativa. Tente novamente.")
       return
     }
+
     setIsFinishing(true)
-    const accessToken = Cookies.get("accessToken")
-    if (!accessToken) {
-      toast.error("Sessão expirada. Por favor, faça login novamente.")
-      router.push("/login")
-      setIsFinishing(false)
-      return
-    }
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/formularios/${createdFormId}`,
-        {
-          method: "PUT", // Ou PATCH, dependendo da sua API
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            titulo: getValues("titulo"),
-            descricao: getValues("descricao"),
-            perguntas: perguntas.map(({ id, ...rest }) => rest),
+      const payload = {
+        tipo: "update_formulario",
+        conteudo: {
+          titulo: getValues("titulo"),
+          descricao: getValues("descricao"),
+          perguntas_adicionadas: perguntas.map((p, index) => {
+            const baseQuestion = {
+              texto: p.pergunta,
+              tipo: p.tipo,
+              obrigatoria: p.obrigatoria,
+              ordem_exibicao: index + 1,
+            }
+            if (p.tipo === "nps") {
+              return { ...baseQuestion, escala_min: p.escala_min, escala_max: p.escala_max }
+            }
+            if ("opcoes" in p) {
+              return { ...baseQuestion, opcoes: p.opcoes }
+            }
+            return baseQuestion
           }),
-        }
-      )
-
-      if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.detail || "Falha ao salvar as perguntas.")
+        },
       }
 
-      toast.success("Formulário salvo com sucesso!")
+      ws.current.send(JSON.stringify(payload))
+
+      toast.success("Alterações enviadas com sucesso!")
       onFormCreated()
       setIsOpen(false)
-    } catch (error: any) {
-      toast.error("Erro ao finalizar", { description: error.message })
+    } catch (error) {
+      let description = "Ocorreu um erro desconhecido."
+      if (error instanceof Error) {
+        description = error.message
+      }
+      toast.error("Erro ao finalizar", { description })
     } finally {
       setIsFinishing(false)
     }
@@ -243,6 +339,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
           setStep(1)
           setCreatedFormId(null)
           reset()
+          ws.current?.close()
         }
       }}
     >
@@ -311,9 +408,9 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
                     </div>
                     {"opcoes" in pergunta && (
                       <div className="pl-4 space-y-2">
-                        {pergunta.opcoes.map((opcao: string, opIndex: number) => (
+                        {pergunta.opcoes.map((opcao, opIndex: number) => (
                           <div key={opIndex} className="flex items-center gap-2">
-                            <Badge variant="secondary" className="font-normal">{opcao}</Badge>
+                            <Badge variant="secondary" className="font-normal">{opcao.texto}</Badge>
                             <button type="button" onClick={() => handleRemoveAlternativa(pergunta.id, opIndex)} className="text-muted-foreground hover:text-destructive">
                               <X className="h-3 w-3" />
                             </button>
@@ -331,32 +428,67 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
                 ))}
               </div>
 
-              {/* Adicionar nova pergunta */}
-              <div className="flex items-end gap-2 border-t pt-4">
-                <div className="grid gap-1.5 flex-1">
-                  <Label htmlFor="nova-pergunta">Texto da Pergunta</Label>
-                  <Input id="nova-pergunta" type="text" placeholder="Ex: Qual sua cor favorita?" value={novaPerguntaTexto} onChange={(e) => setNovaPerguntaTexto(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddPergunta()} />
+              <div className="space-y-4 border-t pt-4">
+                <div className="flex items-end gap-2">
+                  <div className="grid gap-1.5 flex-1">
+                    <Label htmlFor="nova-pergunta">Texto da Pergunta</Label>
+                    <Input id="nova-pergunta" type="text" placeholder="Ex: Qual sua cor favorita?" value={novaPerguntaTexto} onChange={(e) => setNovaPerguntaTexto(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddPergunta()} />
+                  </div>
+                  <div className="flex items-center gap-2 pb-2">
+                    <Checkbox id="obrigatoria" checked={novaPerguntaObrigatoria} onCheckedChange={(checked) => setNovaPerguntaObrigatoria(Boolean(checked))} />
+                    <Label htmlFor="obrigatoria" className="font-normal">Obrigatória</Label>
+                  </div>
                 </div>
+
+                {novaPerguntaTipo === 'nps' && (
+                  <div className="flex items-end gap-2">
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="nps-min">Escala Mínima</Label>
+                      <Input
+                        id="nps-min"
+                        type="number"
+                        value={npsEscala.min}
+                        onChange={(e) => setNpsEscala(prev => ({ ...prev, min: Number(e.target.value) }))}
+                        className="w-28"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="nps-max">Escala Máxima</Label>
+                      <Input
+                        id="nps-max"
+                        type="number"
+                        value={npsEscala.max}
+                        onChange={(e) => setNpsEscala(prev => ({ ...prev, max: Number(e.target.value) }))}
+                        className="w-28"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-end gap-2">
                 <div className="grid gap-1.5">
                   <Label>Tipo</Label>
                   <Select value={novaPerguntaTipo} onValueChange={(value: TipoPergunta) => setNovaPerguntaTipo(value)}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Tipo de pergunta" />
+                    <SelectTrigger className="w-[180px]" disabled={isLoadingTipos}>
+                      <SelectValue placeholder={isLoadingTipos ? "Carregando..." : "Tipo de pergunta"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="texto-curto">Texto Curto</SelectItem>
-                      <SelectItem value="texto-longo">Texto Longo</SelectItem>
-                      <SelectItem value="multipla-escolha">Múltipla Escolha</SelectItem>
-                      <SelectItem value="caixa-de-selecao">Caixa de Seleção</SelectItem>
-                      <SelectItem value="lista-suspensa">Lista Suspensa</SelectItem>
-                      <SelectItem value="data">Data</SelectItem>
-                      <SelectItem value="numero">Número</SelectItem>
+                      {tiposPergunta.map((tipo) => (
+                        <SelectItem key={tipo.value} value={tipo.value}>
+                          {tipo.label
+                            .replace(/_/g, " ")
+                            .replace(/\b\w/g, (char) =>
+                              char.toUpperCase()
+                            )}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <Button type="button" onClick={handleAddPergunta}>
                   <Plus className="mr-2 h-4 w-4" /> Adicionar
                 </Button>
+                </div>
               </div>
             </div>
             <DialogFooter>

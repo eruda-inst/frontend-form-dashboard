@@ -1,10 +1,9 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Cookies from "js-cookie"
-import { toast } from "sonner"
 import type { Form, Pergunta } from "@/app/types/forms"
+import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { useNavigation } from "@/components/navigation-provider"
 import {
   Card,
@@ -30,23 +29,24 @@ import { Loader2 } from "lucide-react"
 // Componente auxiliar para renderizar cada tipo de pergunta
 const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
   switch (pergunta.tipo) {
-    case "texto-curto":
+    case "texto_simples":
       return <Input placeholder="Resposta curta" disabled />
     case "texto-longo":
       return <Textarea placeholder="Resposta longa" disabled />
     case "data":
       return <Input type="date" disabled />
     case "numero":
+    case "nps":
       return <Input type="number" placeholder="0" disabled />
-    case "multipla-escolha":
+    case "multipla_escolha":
       if ("opcoes" in pergunta) {
         return (
           <RadioGroup disabled>
             {pergunta.opcoes.map((opcao, index) => (
               <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem value={opcao} id={`${pergunta.id}-${index}`} />
+                <RadioGroupItem value={opcao.texto} id={`${pergunta.id}-${index}`} />
                 <Label htmlFor={`${pergunta.id}-${index}`} className="font-normal">
-                  {opcao}
+                  {opcao.texto}
                 </Label>
               </div>
             ))}
@@ -54,7 +54,7 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
         )
       }
       return null
-    case "caixa-de-selecao":
+    case "caixa_selecao":
       if ("opcoes" in pergunta) {
         return (
           <div className="space-y-2">
@@ -62,29 +62,11 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
               <div key={index} className="flex items-center space-x-2">
                 <Checkbox id={`${pergunta.id}-${index}`} disabled />
                 <Label htmlFor={`${pergunta.id}-${index}`} className="font-normal">
-                  {opcao}
+                  {opcao.texto}
                 </Label>
               </div>
             ))}
           </div>
-        )
-      }
-      return null
-    case "lista-suspensa":
-      if ("opcoes" in pergunta) {
-        return (
-          <Select disabled>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione uma opção" />
-            </SelectTrigger>
-            <SelectContent>
-              {pergunta.opcoes.map((opcao, index) => (
-                <SelectItem key={index} value={opcao}>
-                  {opcao}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         )
       }
       return null
@@ -99,51 +81,10 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
 
 export default function FormDetailsPage() {
   const params = useParams()
-  const router = useRouter()
   const { setBreadcrumbs } = useNavigation()
-  const [form, setForm] = useState<Form | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const id = params.id as string
-
-  const fetchForm = useCallback(async () => {
-    if (!id) return
-    setIsLoading(true)
-    setError(null)
-    const accessToken = Cookies.get("accessToken")
-    if (!accessToken) {
-      toast.error("Sessão expirada.")
-      router.push("/login")
-      return
-    }
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/formularios/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      )
-      if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.detail || "Falha ao buscar o formulário.")
-      }
-      const data: Form = await res.json()
-      setForm(data)
-    } catch (err: any) {
-      setError(err.message)
-      toast.error("Erro ao carregar formulário", { description: err.message })
-    } finally {
-      setIsLoading(false)
-    }
-  }, [id, router])
-
-  useEffect(() => {
-    fetchForm()
-  }, [fetchForm])
+  const { form, isLoading, error } = useFormWebSocket(id)
 
   useEffect(() => {
     if (form) {
@@ -213,4 +154,3 @@ export default function FormDetailsPage() {
     </div>
   )
 }
-

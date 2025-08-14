@@ -63,7 +63,7 @@ export function CreateGroupDialog({ onGroupCreated }: CreateGroupDialogProps) {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
   const fetchPermissions = useCallback(async () => {
     setIsLoadingPermissions(true)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
 
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
@@ -112,7 +112,7 @@ export function CreateGroupDialog({ onGroupCreated }: CreateGroupDialogProps) {
   })
 
   const handleCreateGroup = async (data: CreateGroupForm) => {
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
     if (!accessToken) {
       toast.error("Sessão expirada.")
       router.push("/login")

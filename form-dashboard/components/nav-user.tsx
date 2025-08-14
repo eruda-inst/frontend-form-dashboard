@@ -93,7 +93,7 @@ export function NavUser({ user }: { user: User }) {
       return
     }
     setIsUpdatingPassword(true)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
 
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
@@ -167,7 +167,7 @@ export function NavUser({ user }: { user: User }) {
     setUpdateError(null)
 
     
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
       router.push("/login")

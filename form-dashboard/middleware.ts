@@ -9,7 +9,7 @@ function redirect(request: NextRequest, path: string) {
 
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
-  const accessToken = request.cookies.get("accessToken")?.value
+  const accessToken = request.cookies.get("access_token")?.value
 
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register")
@@ -68,8 +68,8 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     // Se ele tentar acessar uma página protegida, redireciona para o login
     // E o mais importante: LIMPA OS COOKIES INVÁLIDOS para quebrar o loop.
     const response = redirect(request, "/login")
-    response.cookies.delete("accessToken")
-    response.cookies.delete("refreshToken")
+    response.cookies.delete("access_token")
+    response.cookies.delete("refresh_token")
     response.cookies.delete("user")
 
     return response
