@@ -21,7 +21,7 @@ export default function FormsPage() {
 
   const fetchForms = useCallback(async () => {
     setIsLoading(true)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
 
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")

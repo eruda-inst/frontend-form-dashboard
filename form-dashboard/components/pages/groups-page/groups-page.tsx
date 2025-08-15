@@ -37,7 +37,7 @@ export default function GroupsPage() {
 
   const fetchGroups = useCallback(async () => {
     setIsLoadingGroups(true)
-    const accessToken = Cookies.get("accessToken")
+    const accessToken = Cookies.get("access_token")
 
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")

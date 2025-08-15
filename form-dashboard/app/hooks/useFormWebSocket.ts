@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import type { Form } from "@/app/types/forms"
 
-export function useFormWebSocket(formId: string | null) {
+export function useFormWebSocket(formId: string | null, accessToken: string | null) {
   const [form, setForm] = useState<Form | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -14,12 +14,14 @@ export function useFormWebSocket(formId: string | null) {
   const router = useRouter()
 
   useEffect(() => {
-    if (!formId) {
+    // Adicione este log para depuração
+    console.log("WS URL from env:", process.env.NEXT_PUBLIC_WS_URL);
+
+    if (!formId || !accessToken) {
       setIsLoading(false)
       return
     }
 
-    const accessToken = Cookies.get("access_token")
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
       router.push("/login")
@@ -34,13 +36,14 @@ export function useFormWebSocket(formId: string | null) {
       return
     }
 
-    const wsUrl = `${wsBaseUrl}/ws/formularios/${formId}`
+    // A autenticação da conexão WebSocket é feita via token na URL.
+    // O navegador não enviaria o cookie 'access_token' de localhost para um domínio diferente (IP).
+    const wsUrl = `${wsBaseUrl}/ws/formularios/${formId}?token=${accessToken}`
     const socket = new WebSocket(wsUrl)
     ws.current = socket
 
     socket.onopen = () => {
       console.log(`WebSocket conectado para o formulário ${formId}.`)
-      // A autenticação é feita via cookies enviados na requisição de handshake.
     }
 
     socket.onmessage = (event) => {
@@ -72,7 +75,7 @@ export function useFormWebSocket(formId: string | null) {
     return () => {
       ws.current?.close()
     }
-  }, [formId, router])
+  }, [formId, router, accessToken])
 
   return { form, isLoading, error }
 }

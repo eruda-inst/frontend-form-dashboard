@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import type { Form, Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { useNavigation } from "@/components/navigation-provider"
@@ -81,10 +81,12 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
 
 export default function FormDetailsPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const { setBreadcrumbs } = useNavigation()
 
   const id = params.id as string
-  const { form, isLoading, error } = useFormWebSocket(id)
+  const accessToken = searchParams.get("access_token")
+  const { form, isLoading, error } = useFormWebSocket(id, accessToken)
 
   useEffect(() => {
     if (form) {
@@ -96,7 +98,7 @@ export default function FormDetailsPage() {
     return () => {
       setBreadcrumbs([{ title: "Formulários" }])
     }
-  }, [form, setBreadcrumbs])
+  }, [form, setBreadcrumbs, accessToken])
 
   if (isLoading) {
     return (

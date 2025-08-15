@@ -47,21 +47,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Usa os dados validados e com tipo garantido.
+    // Usa os dados validados e com tipo garantido.
     const { accessToken, refreshToken, firstName, lastName, email, image } = parsedData.data;
 
     // 3. Define os cookies na resposta que será enviada ao navegador
     const user = { name: `${firstName} ${lastName}`, email, avatar: image };
+
+    // Opções de cookie reutilizáveis
+    const cookieOptions = {
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      // Em produção, defina o domínio para que os cookies sejam compartilhados
+      // entre subdomínios (ex: 'app.seusite.com' e 'api.seusite.com').
+      // O domínio deve começar com um ponto. Ex: .meusite.com
+      domain: process.env.COOKIE_DOMAIN || undefined,
+    };
+
     // O accessToken precisa ser acessível pelo middleware e também pelo JavaScript
     // do lado do cliente para chamadas de API. Por isso, NÃO é httpOnly.
-    cookies().set("access_token", accessToken, { secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 15, httpOnly: false }); // 15 minutos
-    // O refreshToken é usado para obter um novo accessToken sem que o usuário
+    cookies().set("access_token", accessToken, { ...cookieOptions, maxAge: 60 * 15, httpOnly: false }); // 15 minutos
+    // O refreshToken é usado para obter um  novo accessToken sem que o usuário
     // precise fazer login novamente. Ele tem uma vida longa e é armazenado
     // de forma segura como um cookie httpOnly.
-    cookies().set("refresh_token", refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7 }); // 7 dias
+    cookies().set("refresh_token", refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: true });
     // O cookie 'user' também não precisa ser httpOnly, pois pode ser útil para
     // exibir informações do usuário na UI sem uma chamada de API.
-    cookies().set("user", JSON.stringify(user), { secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7, httpOnly: false });
+    cookies().set("user", JSON.stringify(user), { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: false });
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
