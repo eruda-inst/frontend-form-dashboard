@@ -87,6 +87,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       }
 
       const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL
+      console.log("CreateFormDialog: Lendo NEXT_PUBLIC_WS_URL do ambiente:", wsBaseUrl);
       if (!wsBaseUrl) {
         console.error("A variável de ambiente NEXT_PUBLIC_WS_URL não está definida.")
         toast.error("Erro de configuração", {
@@ -98,6 +99,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       // Para autenticar a conexão WebSocket, o token é enviado como um query parameter.
       // O navegador não enviará o cookie 'access_token' de localhost para um domínio diferente (IP).
       const wsUrl = `${wsBaseUrl}/ws/formularios/${createdFormId}?token=${accessToken}`
+      console.log("CreateFormDialog: Tentando conectar a:", wsUrl);
       const socket = new WebSocket(wsUrl)
 
       socket.onopen = () => {
@@ -132,7 +134,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
         return
       }
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tipos-pergunta`,
+        `${process.env.NEXT_PUBLIC_API_URL}/formularios/tipos-perguntas/`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,

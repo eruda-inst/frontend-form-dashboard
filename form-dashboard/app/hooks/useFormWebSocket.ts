@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import type { Form } from "@/app/types/forms"
 
-export function useFormWebSocket(formId: string | null, accessToken: string | null) {
+export function useFormWebSocket(formId: string | null, access_token: string | null) {
   const [form, setForm] = useState<Form | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -14,15 +14,17 @@ export function useFormWebSocket(formId: string | null, accessToken: string | nu
   const router = useRouter()
 
   useEffect(() => {
-    // Adicione este log para depuração
-    console.log("WS URL from env:", process.env.NEXT_PUBLIC_WS_URL);
+    // 1. Verificando a variável de ambiente
+    console.log("useFormWebSocket: Lendo NEXT_PUBLIC_WS_URL do ambiente:", process.env.NEXT_PUBLIC_WS_URL);
+    console.log("useFormWebSocket: formId:", formId, "access_token:", access_token);
+    
+    if (!formId || !access_token) {
 
-    if (!formId || !accessToken) {
       setIsLoading(false)
       return
     }
 
-    if (!accessToken) {
+    if (!access_token) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
       router.push("/login")
       return
@@ -38,7 +40,8 @@ export function useFormWebSocket(formId: string | null, accessToken: string | nu
 
     // A autenticação da conexão WebSocket é feita via token na URL.
     // O navegador não enviaria o cookie 'access_token' de localhost para um domínio diferente (IP).
-    const wsUrl = `${wsBaseUrl}/ws/formularios/${formId}?token=${accessToken}`
+    const wsUrl = `${wsBaseUrl}/ws/formularios/${formId}?access_token=${access_token}`
+    console.log("useFormWebSocket: Tentando conectar a:", wsUrl); // 2. Verificando a URL final
     const socket = new WebSocket(wsUrl)
     ws.current = socket
 
@@ -49,13 +52,14 @@ export function useFormWebSocket(formId: string | null, accessToken: string | nu
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        // Assumimos que o backend envia o objeto do formulário completo
-        // tanto na conexão inicial quanto em atualizações.
-        if (data.id && data.titulo) {
-          setForm(data)
+        // O backend agora envia um objeto com 'tipo' e 'conteudo'.
+        // O conteúdo em si é o objeto do formulário.
+        if (data.tipo && data.conteudo && data.conteudo.id) {
+          setForm(data.conteudo)
           setError(null)
         } else {
-          console.log("Mensagem WebSocket não reconhecida:", data)
+          // Se a mensagem não tiver a estrutura esperada, logamos um aviso.
+          console.warn("Mensagem WebSocket não reconhecida ou sem conteúdo de formulário:", data)
         }
       } catch (e) {
         console.error("Erro ao processar mensagem WebSocket:", e)
@@ -75,7 +79,7 @@ export function useFormWebSocket(formId: string | null, accessToken: string | nu
     return () => {
       ws.current?.close()
     }
-  }, [formId, router, accessToken])
+  }, [formId, router, access_token])
 
   return { form, isLoading, error }
 }

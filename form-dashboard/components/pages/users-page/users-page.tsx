@@ -63,7 +63,7 @@ export default function UsersPage() {
     return `${firstInitial}${lastInitial}`.toUpperCase()
   }
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (signal?: AbortSignal) => {
     setIsLoadingUsers(true)
       const accessToken = Cookies.get("access_token")
 
@@ -78,6 +78,7 @@ export default function UsersPage() {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
+        signal, // Passa o AbortSignal para o fetch
       })
 
       if (!res.ok) {
@@ -87,6 +88,10 @@ export default function UsersPage() {
       const data: User[] = await res.json()
       setUsers(data)
     } catch (error: any) {
+      if (error.name === "AbortError") {
+        console.log("Busca de usuários abortada.")
+        return // Não mostra toast se a requisição foi abortada
+      }
       toast.error("Erro ao carregar usuários", {
         description: error.message,
       })
@@ -96,7 +101,15 @@ export default function UsersPage() {
   }, [router])
 
   useEffect(() => {
-    fetchUsers()
+    const controller = new AbortController()
+    const signal = controller.signal
+
+    fetchUsers(signal)
+
+    return () => {
+      // Cancela a requisição quando o componente é desmontado
+      controller.abort()
+    }
   }, [fetchUsers])
 
   const handleUserCreated = () => {

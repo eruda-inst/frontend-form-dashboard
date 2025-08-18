@@ -12,8 +12,7 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from "@/components/ui/radio-group"
-import { group } from "console"
-
+  
 export function LoginForm({
   className,
   ...props
@@ -27,8 +26,10 @@ export function LoginForm({
   const [imagem, setImagem] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [group_id, setGroup_id] = useState("")
-
+  // Dados da empresa
+  const [empresaNome, setEmpresaNome] = useState("")
+  const [empresaCnpj, setEmpresaCnpj] = useState("")
+  const [empresaLogoUrl, setEmpresaLogoUrl] = useState("")
 
   useEffect(() => {
     if (error) {
@@ -46,41 +47,52 @@ export function LoginForm({
     event.preventDefault()
     setIsLoading(true)
     setError(null)
+
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/grupos/grupo-admin-id`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      })
-      const group_id_response = await res.json()
-      setGroup_id(group_id_response.grupo_id)
-      console.log(group_id)
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao solicitar o id do grupo")
-    }
-    try {
-      console.log("grupo id", group_id)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/setup`, {
+      // Primeiro, obtemos o ID do grupo de administradores
+      const grupoRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/grupos/grupo-admin-id`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+
+      if (!grupoRes.ok) {
+        throw new Error("Não foi possível obter o grupo de administradores padrão.")
+      }
+      const grupoData = await grupoRes.json()
+      const adminGroupId = grupoData.grupo_id
+
+      // Agora, montamos o payload e enviamos para a rota de setup
+      const setupRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/setup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nome,
-          username,
-          genero,
-          imagem,
-          email,
-          nivel: "admin", // O primeiro usuário é sempre administrador
-          grupo_id: group_id,
-          ativo: true,
-          senha,
+          usuario: {
+            nome,
+            username,
+            genero,
+            imagem,
+            email,
+            ativo: true,
+            senha,
+            grupo_id: adminGroupId,
+          },
+          empresa: {
+            nome: empresaNome,
+            cnpj: empresaCnpj,
+            logo_url: empresaLogoUrl,
+          },
         }),
       })
 
-      if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.message || "Falha ao configurar administrador.")
+      if (!setupRes.ok) {
+        const errorData = await setupRes.json()
+        throw new Error(errorData.message || "Falha ao configurar o sistema.")
       }
 
-      toast.success("Administrador configurado!", {
+      toast.success("Sistema configurado com sucesso!", {
         description: "Você será redirecionado para a tela de login.",
       })
 
@@ -182,6 +194,48 @@ export function LoginForm({
             value={imagem}
             onChange={(e) => setImagem(e.target.value)}
             required
+          />
+        </div>
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Dados da Empresa
+            </span>
+          </div>
+        </div>
+        <div className="grid gap-3">
+          <Label htmlFor="empresaNome">Nome da Empresa</Label>
+          <Input
+            id="empresaNome"
+            type="text"
+            placeholder="Minha Empresa LTDA"
+            value={empresaNome}
+            onChange={(e) => setEmpresaNome(e.target.value)}
+            required
+          />
+        </div>
+        <div className="grid gap-3">
+          <Label htmlFor="empresaCnpj">CNPJ</Label>
+          <Input
+            id="empresaCnpj"
+            type="text"
+            placeholder="00.000.000/0001-00"
+            value={empresaCnpj}
+            onChange={(e) => setEmpresaCnpj(e.target.value)}
+            required
+          />
+        </div>
+        <div className="grid gap-3">
+          <Label htmlFor="empresaLogo">URL do Logo</Label>
+          <Input
+            id="empresaLogo"
+            type="text"
+            placeholder="https://example.com/logo.png"
+            value={empresaLogoUrl}
+            onChange={(e) => setEmpresaLogoUrl(e.target.value)}
           />
         </div>
         <Button type="submit" className="w-full" disabled={isLoading}>

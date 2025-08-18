@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect } from "react"
-import { useParams, useSearchParams } from "next/navigation"
+import { useParams } from "next/navigation"
+import Cookies from "js-cookie"
 import type { Form, Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { useNavigation } from "@/components/navigation-provider"
@@ -81,11 +82,14 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
 
 export default function FormDetailsPage() {
   const params = useParams()
-  const searchParams = useSearchParams()
   const { setBreadcrumbs } = useNavigation()
 
   const id = params.id as string
-  const accessToken = searchParams.get("access_token")
+  // Buscando o token diretamente dos cookies, que é mais seguro e robusto
+  // do que passá-lo via parâmetro de URL.
+  const accessToken = Cookies.get("access_token") || null
+  console.log("FormDetailsPage: Access Token lido do cookie:", accessToken)
+
   const { form, isLoading, error } = useFormWebSocket(id, accessToken)
 
   useEffect(() => {
@@ -98,7 +102,7 @@ export default function FormDetailsPage() {
     return () => {
       setBreadcrumbs([{ title: "Formulários" }])
     }
-  }, [form, setBreadcrumbs, accessToken])
+  }, [form, setBreadcrumbs])
 
   if (isLoading) {
     return (

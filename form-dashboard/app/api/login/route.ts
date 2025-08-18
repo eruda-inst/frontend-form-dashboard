@@ -48,10 +48,16 @@ export async function POST(request: Request) {
     }
 
     // Usa os dados validados e com tipo garantido.
-    const { accessToken, refreshToken, firstName, lastName, email, image } = parsedData.data;
+    const { accessToken, refreshToken, firstName, lastName, email, image, gender, username: apiUsername } = parsedData.data;
 
     // 3. Define os cookies na resposta que será enviada ao navegador
-    const user = { name: `${firstName} ${lastName}`, email, avatar: image };
+    const user = {
+      name: `${firstName} ${lastName}`,
+      email,
+      avatar: image,
+      genero: gender,
+      username: apiUsername
+    };
 
     // Opções de cookie reutilizáveis
     const cookieOptions = {
@@ -65,14 +71,24 @@ export async function POST(request: Request) {
 
     // O accessToken precisa ser acessível pelo middleware e também pelo JavaScript
     // do lado do cliente para chamadas de API. Por isso, NÃO é httpOnly.
-    cookies().set("access_token", accessToken, { ...cookieOptions, maxAge: 60 * 15, httpOnly: false }); // 15 minutos
+    (await
+      // O accessToken precisa ser acessível pelo middleware e também pelo JavaScript
+      // do lado do cliente para chamadas de API. Por isso, NÃO é httpOnly.
+      cookies()).set("access_token", accessToken, { ...cookieOptions, maxAge: 60 * 15, httpOnly: false }); // 15 minutos
     // O refreshToken é usado para obter um  novo accessToken sem que o usuário
     // precise fazer login novamente. Ele tem uma vida longa e é armazenado
     // de forma segura como um cookie httpOnly.
-    cookies().set("refresh_token", refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: true });
+    (await
+      // O refreshToken é usado para obter um  novo accessToken sem que o usuário
+      // precise fazer login novamente. Ele tem uma vida longa e é armazenado
+      // de forma segura como um cookie httpOnly.
+      cookies()).set("refresh_token", refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: true });
     // O cookie 'user' também não precisa ser httpOnly, pois pode ser útil para
     // exibir informações do usuário na UI sem uma chamada de API.
-    cookies().set("user", JSON.stringify(user), { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: false });
+    (await
+      // O cookie 'user' também não precisa ser httpOnly, pois pode ser útil para
+      // exibir informações do usuário na UI sem uma chamada de API.
+      cookies()).set("user", JSON.stringify(user), { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: false });
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

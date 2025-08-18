@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { ChevronRight, type LucideIcon } from "lucide-react"
 
 import {
@@ -35,6 +36,7 @@ export function NavMain({
   }[]
 }) {
   const { activeTitle, setActiveTitle } = useNavigation()
+  const router = useRouter()
 
   return (
     <SidebarGroup>
@@ -46,7 +48,10 @@ export function NavMain({
               <SidebarMenuButton
                 tooltip={item.title}
                 isActive={activeTitle === item.title}
-                onClick={() => setActiveTitle(item.title)}
+                onClick={() => {
+                  setActiveTitle(item.title)
+                  router.push("/dashboard")
+                }}
               >
                 <item.icon />
                 <span>{item.title}</span>
@@ -69,7 +74,10 @@ export function NavMain({
                           >
                             <button
                               type="button"
-                              onClick={() => setActiveTitle(subItem.title)}
+                              onClick={() => {
+                                setActiveTitle(subItem.title)
+                                router.push("/dashboard")
+                              }}
                             >
                               <span>{subItem.title}</span>
                             </button>
