@@ -13,6 +13,7 @@ interface PerguntaBase {
   tipo: TipoPergunta
   obrigatoria: boolean
   texto: string
+  ordem_exibicao: number
 }
 
 export interface PerguntaTexto extends PerguntaBase {

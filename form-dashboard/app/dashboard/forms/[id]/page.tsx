@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-import { useEffect } from "react"
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation"
 import Cookies from "js-cookie"
 import type { Pergunta } from "@/app/types/forms"
@@ -89,6 +89,62 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
   }
 }
 
+const EditableQuestion = ({ pergunta, index, onUpdate }: {
+  pergunta: Pergunta;
+  index: number;
+  onUpdate: (id: string, texto: string) => void;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [text, setText] = useState(pergunta.texto);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    setText(pergunta.texto);
+  }, [pergunta.texto]);
+
+  const handleUpdate = () => {
+    setIsEditing(false);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newText = e.target.value;
+    setText(newText);
+    if (newText.trim() !== pergunta.texto) {
+      onUpdate(pergunta.id, newText.trim());
+    }
+  };
+
+  return (
+    <div onClick={() => setIsEditing(true)} className="cursor-pointer">
+      {isEditing ? (
+        <Input
+          ref={inputRef}
+          type="text"
+          value={text}
+          onChange={handleChange}
+          onBlur={handleUpdate}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleUpdate();
+            }
+          }}
+          className="text-lg font-medium"
+        />
+      ) : (
+        <CardTitle className="text-lg font-medium break-words">
+          {index + 1}. {pergunta.texto}
+        </CardTitle>
+      )}
+    </div>
+  );
+};
+
 export default function FormDetailsPage() {
   const params = useParams()
   const { setBreadcrumbs } = useNavigation()
@@ -97,6 +153,23 @@ export default function FormDetailsPage() {
   const accessToken = Cookies.get("access_token") || null
 
   const { form, isLoading, error, sendMessage } = useFormWebSocket(id, accessToken)
+
+  const handleUpdateQuestion = (questionId: string, newText: string) => {
+    if (form) {
+      sendMessage({
+        tipo: "update_formulario",
+        conteudo: {
+          perguntas_editadas: [
+            {
+              id: questionId,
+              texto: newText,
+              ordem_exibicao: form.perguntas.find(p => p.id === questionId)?.ordem_exibicao ?? 0
+            },
+          ],
+        },
+      });
+    }
+  };
 
   const handleDeleteQuestion = (questionId: string) => {
     if (form) {
@@ -164,19 +237,17 @@ export default function FormDetailsPage() {
           {form.perguntas.map((pergunta, index) => (
             <Card key={pergunta.id} className="group relative">
               <AlertDialog>
-
               <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="cursor-pointer absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="cursor-pointer absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
-                {/* Conteúdo do diálogo */}
-    <AlertDialogHeader>
+                <AlertDialogHeader>
                   <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                   <AlertDialogDescription>
                     Essa ação não pode ser desfeita. Isso irá deletar permanentemente esta pergunta do formulário.
@@ -186,12 +257,16 @@ export default function FormDetailsPage() {
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction onClick={() => handleDeleteQuestion(pergunta.id)}>Deletar</AlertDialogAction>
                 </AlertDialogFooter>
-  </AlertDialogContent>
-              </AlertDialog>
+              </AlertDialogContent>
+            </AlertDialog>
               <CardHeader>
-                <CardTitle className="text-lg font-medium">
-                  {index + 1}. {pergunta.texto}
-                </CardTitle>
+                <div className="w-full overflow-hidden">
+                  <EditableQuestion
+                    pergunta={pergunta}
+                    index={index}
+                    onUpdate={handleUpdateQuestion}
+                  />
+                </div>
               </CardHeader>
               <CardContent>
                 <RenderQuestion pergunta={pergunta} />

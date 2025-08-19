@@ -20,44 +20,77 @@ export default function FormsPage() {
   const [forms, setForms] = useState<Form[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  const fetchForms = useCallback(async () => {
-    setIsLoading(true)
+  useEffect(() => {
     const accessToken = Cookies.get("access_token")
 
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
       router.push("/login")
+      setIsLoading(false)
       return
     }
 
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/formularios/`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      )
+    const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL
+    if (!wsBaseUrl) {
+      console.error("A variável de ambiente NEXT_PUBLIC_WS_URL não está definida.")
+      toast.error("Erro de configuração: URL do WebSocket não definida.")
+      setIsLoading(false)
+      return
+    }
 
-      if (!res.ok) {
-        throw new Error("Falha ao buscar formulários.")
-      }
+    const wsUrl = `${wsBaseUrl}/ws/formularios/?access_token=${accessToken}`
+    const socket = new WebSocket(wsUrl)
 
-      const data: Form[] = await res.json()
-      setForms(data)
-    } catch (error: any) {
-      toast.error("Erro ao carregar formulários", {
-        description: error.message,
-      })
-    } finally {
+    socket.onopen = () => {
       setIsLoading(false)
     }
-  }, [router])
 
-  useEffect(() => {
-    fetchForms()
-  }, [fetchForms])
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        // Assuming the message directly contains the array of forms
+        if (Array.isArray(data)) {
+          setForms(data)
+        } else if (data.tipo === "initial_forms" && Array.isArray(data.conteudo)) {
+          // If the message is structured with a type and content
+          setForms(data.conteudo);
+        } else if (data.tipo === "form_updated" && data.conteudo) {
+          // Handle individual form updates
+          setForms(prevForms => {
+            const existingFormIndex = prevForms.findIndex(f => f.id === data.conteudo.id);
+            if (existingFormIndex > -1) {
+              const updatedForms = [...prevForms];
+              updatedForms[existingFormIndex] = data.conteudo;
+              return updatedForms;
+            } else {
+              return [...prevForms, data.conteudo]; // Add new form
+            }
+          });
+        } else if (data.tipo === "form_deleted" && data.conteudo && data.conteudo.id) {
+          // Handle form deletion
+          setForms(prevForms => prevForms.filter(f => f.id !== data.conteudo.id));
+        }
+      } catch (e) {
+        console.error("Erro ao processar mensagem WebSocket:", e)
+        toast.error("Falha ao processar dados recebidos do servidor.")
+      }
+    }
+
+    socket.onerror = (event) => {
+      console.error("WebSocket erro:", event)
+      toast.error("Erro na conexão com o servidor de formulários.")
+      setIsLoading(false)
+    }
+
+    socket.onclose = () => {
+      console.log("WebSocket desconectado.")
+      // Optionally try to reconnect or show a message
+    }
+
+    return () => {
+      socket.close()
+    }
+  }, [router])
 
   if (isLoading) {
     return (
@@ -98,7 +131,7 @@ export default function FormsPage() {
           </p>
         </div>
       )}
-      <CreateFormDialog onFormCreated={fetchForms} />
+            <CreateFormDialog onFormCreated={() => toast.success("Formulário criado com sucesso!")} /> 
     </div>
   )
 }

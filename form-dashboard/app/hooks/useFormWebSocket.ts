@@ -13,6 +13,43 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
   const ws = useRef<WebSocket | null>(null)
   const router = useRouter()
 
+  const renewSession = async () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) {
+      console.error("NEXT_PUBLIC_API_URL is not defined.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiUrl}/api/auth/renew-session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.access_token) {
+          Cookies.set("access_token", data.access_token, { expires: 7 }); // Renew cookie for 7 days
+          // Optionally, update the access_token state if it's managed here
+          // setAccessToken(data.access_token); // If access_token was a state
+        }
+      } else if (response.status === 401) {
+        // Unauthorized, session truly expired or invalid token
+        toast.error("Sessão expirada. Por favor, faça login novamente.");
+        router.push("/login");
+      } else {
+        console.error("Failed to renew session:", response.statusText);
+        toast.error("Falha ao renovar a sessão.");
+      }
+    } catch (error) {
+      console.error("Error renewing session:", error);
+      toast.error("Erro de rede ao tentar renovar a sessão.");
+    }
+  };
+
   useEffect(() => {
     if (!formId || !access_token) {
       setIsLoading(false)
@@ -70,7 +107,12 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     }
   }, [formId, router, access_token])
 
-  const sendMessage = (message: object) => {
+  const sendMessage = async (message: object) => {
+    // Attempt to renew session before sending message
+    if (access_token) {
+      await renewSession();
+    }
+
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message))
       console.log("Mensagem enviada:", message)
