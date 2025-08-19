@@ -1,5 +1,6 @@
 "use client"
 import { Badge } from "@/components/ui/badge"
+import { Loader2 } from "lucide-react"
 
 import { useState, useEffect, useCallback } from "react"
 import Cookies from "js-cookie"
@@ -72,32 +73,47 @@ export default function GroupsPage() {
   }, [fetchGroups])
 
   if (isLoadingGroups) {
-    return <div className="text-center">Carregando grupos...</div>
+    return (
+      <div className="flex h-full min-h-[50vh] items-center justify-center">
+        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+        <span>Carregando grupos...</span>
+      </div>
+    )
   }
 
   return (
     <div className="grid auto-rows-min gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {groups.map((group) => (
-        <EditGroupDialog key={group.id} group={group} onGroupUpdated={fetchGroups}>
-          <Card className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-101">
-            <CardHeader>
-              <CardTitle>{group.nome}</CardTitle>
-              <CardDescription>
-                {group.permissoes.length} permissões
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-1">
-                {group.permissoes.map((permission) => (
-                  <Badge key={permission.id} variant="secondary">
-                    {permission.nome}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </EditGroupDialog>
-      ))}
+      {groups.length > 0 ? (
+        groups.map((group) => (
+          <EditGroupDialog
+            key={group.id}
+            group={group}
+            onGroupUpdated={fetchGroups}
+          >
+            <Card className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-105">
+              <CardHeader>
+                <CardTitle>{group.nome}</CardTitle>
+                <CardDescription>
+                  {group.permissoes.length} permissões
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-1">
+                  {group.permissoes.map((permission) => (
+                    <Badge key={permission.id} variant="secondary">
+                      {permission.nome}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </EditGroupDialog>
+        ))
+      ) : (
+        <div className="col-span-full flex h-full min-h-[40vh] items-center justify-center rounded-xl border border-dashed">
+          <p className="text-muted-foreground">Nenhum grupo encontrado.</p>
+        </div>
+      )}
       <CreateGroupDialog onGroupCreated={fetchGroups} />
     </div>
   )

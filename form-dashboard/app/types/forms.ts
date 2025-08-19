@@ -1,6 +1,6 @@
 export type TipoPergunta =
   | "texto_simples"
-  | "texto-longo"
+  | "texto_longo"
   | "multipla_escolha"
   | "caixa_selecao"
   | "data"
@@ -12,10 +12,11 @@ interface PerguntaBase {
   pergunta: string
   tipo: TipoPergunta
   obrigatoria: boolean
+  texto: string
 }
 
 export interface PerguntaTexto extends PerguntaBase {
-  tipo: "texto_simples" | "texto-longo" | "data" | "numero"
+  tipo: "texto_simples" | "texto_longo" | "data" | "numero"
 }
 
 export interface PerguntaNPS extends PerguntaBase {
@@ -38,4 +39,5 @@ export interface Form {
   perguntas: Pergunta[]
   criado_em: string
   atualizado_em: string
+  texto: string
 }

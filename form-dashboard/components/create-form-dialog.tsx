@@ -98,7 +98,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
 
       // Para autenticar a conexão WebSocket, o token é enviado como um query parameter.
       // O navegador não enviará o cookie 'access_token' de localhost para um domínio diferente (IP).
-      const wsUrl = `${wsBaseUrl}/ws/formularios/${createdFormId}?token=${accessToken}`
+      const wsUrl = `${wsBaseUrl}/ws/formularios/${createdFormId}?access_token=${accessToken}`
       console.log("CreateFormDialog: Tentando conectar a:", wsUrl);
       const socket = new WebSocket(wsUrl)
 

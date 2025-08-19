@@ -14,12 +14,7 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
   const router = useRouter()
 
   useEffect(() => {
-    // 1. Verificando a variável de ambiente
-    console.log("useFormWebSocket: Lendo NEXT_PUBLIC_WS_URL do ambiente:", process.env.NEXT_PUBLIC_WS_URL);
-    console.log("useFormWebSocket: formId:", formId, "access_token:", access_token);
-    
     if (!formId || !access_token) {
-
       setIsLoading(false)
       return
     }
@@ -38,28 +33,22 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
       return
     }
 
-    // A autenticação da conexão WebSocket é feita via token na URL.
-    // O navegador não enviaria o cookie 'access_token' de localhost para um domínio diferente (IP).
     const wsUrl = `${wsBaseUrl}/ws/formularios/${formId}?access_token=${access_token}`
-    console.log("useFormWebSocket: Tentando conectar a:", wsUrl); // 2. Verificando a URL final
     const socket = new WebSocket(wsUrl)
     ws.current = socket
 
     socket.onopen = () => {
-      console.log(`WebSocket conectado para o formulário ${formId}.`)
+      // Conexão estabelecida
     }
 
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        // O backend agora envia um objeto com 'tipo' e 'conteudo'.
-        // O conteúdo em si é o objeto do formulário.
         if (data.tipo && data.conteudo && data.conteudo.id) {
           setForm(data.conteudo)
           setError(null)
         } else {
-          // Se a mensagem não tiver a estrutura esperada, logamos um aviso.
-          console.warn("Mensagem WebSocket não reconhecida ou sem conteúdo de formulário:", data)
+          // Mensagem WebSocket não reconhecida ou sem conteúdo de formulário
         }
       } catch (e) {
         console.error("Erro ao processar mensagem WebSocket:", e)
@@ -81,5 +70,15 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     }
   }, [formId, router, access_token])
 
-  return { form, isLoading, error }
+  const sendMessage = (message: object) => {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify(message))
+      console.log("Mensagem enviada:", message)
+    } else {
+      console.error("WebSocket não está conectado. Não foi possível enviar a mensagem.")
+      toast.error("Não foi possível enviar a atualização. Verifique sua conexão.")
+    }
+  }
+
+  return { form, isLoading, error, sendMessage }
 }

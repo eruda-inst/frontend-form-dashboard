@@ -1,5 +1,10 @@
 "use client"
-import * as React from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react"
 
 export interface BreadcrumbItem {
   title: string
@@ -13,11 +18,15 @@ interface NavigationContextValue {
   setBreadcrumbs: (breadcrumbs: BreadcrumbItem[]) => void
 }
 
-const NavigationContext = React.createContext<NavigationContextValue | undefined>(undefined)
+const NavigationContext = createContext<NavigationContextValue | undefined>(
+  undefined,
+)
 
-export function NavigationProvider({ children }: { children: React.ReactNode }) {
-  const [activeTitle, setActiveTitle] = React.useState("Dashboard")
-  const [breadcrumbs, setBreadcrumbs] = React.useState<BreadcrumbItem[]>([])
+export function NavigationProvider({ children }: { children: ReactNode }) {
+  const [activeTitle, setActiveTitle] = useState("Dashboard")
+  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([
+    { title: "Dashboard" },
+  ])
 
   return (
     <NavigationContext.Provider
@@ -29,7 +38,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 }
 
 export function useNavigation() {
-  const context = React.useContext(NavigationContext)
+  const context = useContext(NavigationContext)
   if (!context) {
     throw new Error("useNavigation must be used within NavigationProvider")
   }

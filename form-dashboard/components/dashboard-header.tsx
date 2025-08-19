@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { useNavigation } from "@/components/navigation-provider"
 import {
@@ -27,16 +28,18 @@ export function DashboardHeader() {
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbs.map((crumb, index) => (
-              <BreadcrumbItem key={index} className="hidden md:flex">
-                {crumb.url && index < breadcrumbs.length - 1 ? (
-                  <BreadcrumbLink asChild>
-                    <Link href={crumb.url}>{crumb.title}</Link>
-                  </BreadcrumbLink>
-                ) : (
-                  <BreadcrumbPage>{crumb.title}</BreadcrumbPage>
-                )}
+              <React.Fragment key={index}>
+                <BreadcrumbItem className="hidden md:flex">
+                  {crumb.url && index < breadcrumbs.length - 1 ? (
+                    <BreadcrumbLink asChild>
+                      <Link href={crumb.url}>{crumb.title}</Link>
+                    </BreadcrumbLink>
+                  ) : (
+                    <BreadcrumbPage>{crumb.title}</BreadcrumbPage>
+                  )}
+                </BreadcrumbItem>
                 {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
-              </BreadcrumbItem>
+              </React.Fragment>
             ))}
           </BreadcrumbList>
         </Breadcrumb>

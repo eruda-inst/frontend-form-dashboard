@@ -1,9 +1,21 @@
 "use client"
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 import { useEffect } from "react"
 import { useParams } from "next/navigation"
 import Cookies from "js-cookie"
-import type { Form, Pergunta } from "@/app/types/forms"
+import type { Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { useNavigation } from "@/components/navigation-provider"
 import {
@@ -18,21 +30,15 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Loader2, Trash } from "lucide-react"
 
 // Componente auxiliar para renderizar cada tipo de pergunta
 const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
   switch (pergunta.tipo) {
     case "texto_simples":
       return <Input placeholder="Resposta curta" disabled />
-    case "texto-longo":
+    case "texto_longo":
       return <Textarea placeholder="Resposta longa" disabled />
     case "data":
       return <Input type="date" disabled />
@@ -45,7 +51,10 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
           <RadioGroup disabled>
             {pergunta.opcoes.map((opcao, index) => (
               <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem value={opcao.texto} id={`${pergunta.id}-${index}`} />
+                <RadioGroupItem
+                  value={opcao.texto}
+                  id={`${pergunta.id}-${index}`}
+                />
                 <Label htmlFor={`${pergunta.id}-${index}`} className="font-normal">
                   {opcao.texto}
                 </Label>
@@ -85,12 +94,25 @@ export default function FormDetailsPage() {
   const { setBreadcrumbs } = useNavigation()
 
   const id = params.id as string
-  // Buscando o token diretamente dos cookies, que é mais seguro e robusto
-  // do que passá-lo via parâmetro de URL.
   const accessToken = Cookies.get("access_token") || null
-  console.log("FormDetailsPage: Access Token lido do cookie:", accessToken)
 
-  const { form, isLoading, error } = useFormWebSocket(id, accessToken)
+  const { form, isLoading, error, sendMessage } = useFormWebSocket(id, accessToken)
+
+  const handleDeleteQuestion = (questionId: string) => {
+    if (form) {
+      console.log(form.id, questionId)
+      sendMessage(
+        {
+        "tipo": "update_formulario",
+        "conteudo": {
+        "perguntas_removidas": [
+          questionId
+        ]
+        }
+      }
+      )
+    }
+  }
 
   useEffect(() => {
     if (form) {
@@ -122,7 +144,7 @@ export default function FormDetailsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto grid gap-8">
       <Card className="p-0">
         <CardHeader className="border-b bg-muted/30 p-6">
           <CardTitle className="text-2xl">{form.titulo}</CardTitle>
@@ -138,18 +160,45 @@ export default function FormDetailsPage() {
       </Card>
 
       {form.perguntas.length > 0 ? (
-        form.perguntas.map((pergunta, index) => (
-          <Card key={pergunta.id}>
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">
-                {index + 1}. {pergunta.pergunta}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RenderQuestion pergunta={pergunta} />
-            </CardContent>
-          </Card>
-        ))
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {form.perguntas.map((pergunta, index) => (
+            <Card key={pergunta.id} className="group relative">
+              <AlertDialog>
+
+              <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="cursor-pointer absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                {/* Conteúdo do diálogo */}
+    <AlertDialogHeader>
+                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Essa ação não pode ser desfeita. Isso irá deletar permanentemente esta pergunta do formulário.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handleDeleteQuestion(pergunta.id)}>Deletar</AlertDialogAction>
+                </AlertDialogFooter>
+  </AlertDialogContent>
+              </AlertDialog>
+              <CardHeader>
+                <CardTitle className="text-lg font-medium">
+                  {index + 1}. {pergunta.texto}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RenderQuestion pergunta={pergunta} />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
