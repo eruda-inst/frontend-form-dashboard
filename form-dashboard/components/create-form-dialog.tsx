@@ -9,7 +9,7 @@ import { Plus, Loader2, X } from "lucide-react"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Checkbox } from "@/components/ui/checkbox"
-import type { Pergunta, TipoPergunta } from "@/app/types/forms"
+import type { Form, Pergunta, TipoPergunta } from "@/app/types/forms"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -43,13 +43,14 @@ const createFormSchema = z.object({
 type CreateFormValues = z.infer<typeof createFormSchema>
 
 interface CreateFormDialogProps {
-  onFormCreated: () => void
+  onFormCreated: (newForm: Form) => void
 }
 
 export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState(1)
+  const [createdForm, setCreatedForm] = useState<Form | null>(null);
   const [createdFormId, setCreatedFormId] = useState<string | null>(null)
   const [perguntas, setPerguntas] = useState<Pergunta[]>([])
   const [novaPerguntaTexto, setNovaPerguntaTexto] = useState("")
@@ -72,13 +73,12 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    getValues,
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createFormSchema),
   })
 
   useEffect(() => {
-    if (step === 2 && createdFormId && !ws.current) {
+    if (step === 2 && createdFormId) {
       const accessToken = Cookies.get("access_token")
       if (!accessToken) {
         toast.error("Sessão expirada. Por favor, faça login novamente.")
@@ -87,39 +87,37 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       }
 
       const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL
-      console.log("CreateFormDialog: Lendo NEXT_PUBLIC_WS_URL do ambiente:", wsBaseUrl);
       if (!wsBaseUrl) {
-        console.error("A variável de ambiente NEXT_PUBLIC_WS_URL não está definida.")
-        toast.error("Erro de configuração", {
-          description: "A URL do WebSocket não foi configurada corretamente.",
-        })
+        toast.error("Erro de configuração: URL do WebSocket não definida.")
         return
       }
 
-      // Para autenticar a conexão WebSocket, o token é enviado como um query parameter.
-      // O navegador não enviará o cookie 'access_token' de localhost para um domínio diferente (IP).
       const wsUrl = `${wsBaseUrl}/ws/formularios/${createdFormId}?access_token=${accessToken}`
-      console.log("CreateFormDialog: Tentando conectar a:", wsUrl);
       const socket = new WebSocket(wsUrl)
+      ws.current = socket
 
-      socket.onopen = () => {
-        console.log("WebSocket conectado.")
-        // A autenticação é feita via token na URL.
-        toast.info("Conectado para edição em tempo real.")
-      }
-      socket.onclose = () => {
-        console.log("WebSocket desconectado.")
-      }
+      socket.onopen = () => toast.info("Conectado para edição em tempo real.")
+      
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.conteudo && Array.isArray(data.conteudo.perguntas)) {
+          setPerguntas(data.conteudo.perguntas);
+        } else if (data.conteudo) {
+            setPerguntas(data.conteudo)
+        }
+      };
+
+      socket.onclose = () => console.log("WebSocket desconectado.")
       socket.onerror = (error) => {
         console.error("WebSocket erro:", error)
         toast.error("Erro na conexão em tempo real.")
       }
 
-      ws.current = socket
-
       return () => {
-        ws.current?.close()
-        ws.current = null
+        if (ws.current) {
+            ws.current.close()
+            ws.current = null
+        }
       }
     }
   }, [step, createdFormId, router])
@@ -141,16 +139,11 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
           },
         }
       )
-      if (!res.ok) {
-        throw new Error("Falha ao buscar os tipos de pergunta.")
-      }
+      if (!res.ok) throw new Error("Falha ao buscar os tipos de pergunta.")
       const data = await res.json()
       setTiposPergunta(data)
     } catch (error) {
-      let description = "Ocorreu um erro desconhecido."
-      if (error instanceof Error) {
-        description = error.message
-      }
+      const description = error instanceof Error ? error.message : "Ocorreu um erro desconhecido."
       toast.error("Erro ao carregar tipos de pergunta", { description })
     } finally {
       setIsLoadingTipos(false)
@@ -161,48 +154,55 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
     if (isOpen) fetchTiposPergunta()
   }, [isOpen, fetchTiposPergunta])
 
+  const sendWebSocketMessage = (message: object) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      toast.error("A conexão para edição não está ativa.")
+      return false;
+    }
+    ws.current.send(JSON.stringify(message));
+    return true;
+  }
+
   const handleAddPergunta = () => {
     if (!novaPerguntaTexto.trim()) {
       toast.warning("O texto da pergunta não pode estar em branco.")
       return
     }
 
-    let newQuestion: Pergunta
-    if (
-      novaPerguntaTipo === "caixa_selecao" ||
-      novaPerguntaTipo === "multipla_escolha"
-    ) {
-      newQuestion = {
-        id: `temp-${Date.now()}`,
-        pergunta: novaPerguntaTexto,
+    let newQuestionPayload: any = {
+        texto: novaPerguntaTexto,
         tipo: novaPerguntaTipo,
         obrigatoria: novaPerguntaObrigatoria,
-        opcoes: [],
-      }
+        ordem_exibicao: perguntas.length + 1,
+    };
+
+    if (novaPerguntaTipo === "caixa_selecao" || novaPerguntaTipo === "multipla_escolha") {
+        newQuestionPayload.opcoes = [];
     } else if (novaPerguntaTipo === "nps") {
-      newQuestion = {
-        id: `temp-${Date.now()}`,
-        pergunta: novaPerguntaTexto,
-        tipo: novaPerguntaTipo,
-        obrigatoria: novaPerguntaObrigatoria,
-        escala_min: npsEscala.min,
-        escala_max: npsEscala.max,
-      }
-    } else {
-      newQuestion = {
-        id: `temp-${Date.now()}`,
-        pergunta: novaPerguntaTexto,
-        tipo: novaPerguntaTipo,
-        obrigatoria: novaPerguntaObrigatoria,
-      }
+        newQuestionPayload.escala_min = npsEscala.min;
+        newQuestionPayload.escala_max = npsEscala.max;
     }
 
-    setPerguntas([...perguntas, newQuestion])
-    setNovaPerguntaTexto("")
+    const message = {
+        tipo: "update_formulario",
+        conteudo: {
+            perguntas_adicionadas: [newQuestionPayload]
+        }
+    }
+
+    if (sendWebSocketMessage(message)) {
+        setNovaPerguntaTexto("");
+    }
   }
 
   const handleRemovePergunta = (perguntaId: string) => {
-    setPerguntas(perguntas.filter((p) => p.id !== perguntaId))
+    const message = {
+        tipo: "update_formulario",
+        conteudo: {
+            perguntas_removidas: [perguntaId]
+        }
+    }
+    sendWebSocketMessage(message);
   }
 
   const handleAddAlternativa = (perguntaId: string) => {
@@ -212,32 +212,53 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       return
     }
 
-    setPerguntas(
-      perguntas.map((p) => {
-        if (p.id === perguntaId && "opcoes" in p) {
-          return {
-            ...p,
-            opcoes: [...p.opcoes, { texto: alternativaText }],
-          }
-        }
-        return p
-      })
-    )
-    setNovaAlternativa((prev) => ({ ...prev, [perguntaId]: "" }))
+    const perguntaToUpdate = perguntas.find(p => p.id === perguntaId);
+    if (perguntaToUpdate && "opcoes" in perguntaToUpdate) {
+      const updatedOptions = [...perguntaToUpdate.opcoes, { texto: alternativaText }];
+      
+      const questionPayload = {
+          id: perguntaToUpdate.id,
+          texto: perguntaToUpdate.texto,
+          tipo: perguntaToUpdate.tipo,
+          obrigatoria: perguntaToUpdate.obrigatoria,
+          ordem_exibicao: perguntas.findIndex(p => p.id === perguntaId) + 1,
+          opcoes: updatedOptions,
+      };
+
+      const message = {
+        tipo: "update_formulario",
+        conteudo: {
+          perguntas_editadas: [questionPayload],
+        },
+      };
+      if (sendWebSocketMessage(message)) {
+        setNovaAlternativa((prev) => ({ ...prev, [perguntaId]: "" }));
+      }
+    }
   }
 
   const handleRemoveAlternativa = (perguntaId: string, indexToRemove: number) => {
-    setPerguntas(
-      perguntas.map((p) => {
-        if (p.id === perguntaId && "opcoes" in p) {
-          const novasOpcoes = p.opcoes.filter(
-            (_, index: number) => index !== indexToRemove
-          )
-          return { ...p, opcoes: novasOpcoes }
-        }
-        return p
-      })
-    )
+    const perguntaToUpdate = perguntas.find(p => p.id === perguntaId);
+    if (perguntaToUpdate && "opcoes" in perguntaToUpdate) {
+      const updatedOptions = perguntaToUpdate.opcoes.filter((_, index) => index !== indexToRemove);
+      
+      const questionPayload = {
+          id: perguntaToUpdate.id,
+          texto: perguntaToUpdate.texto,
+          tipo: perguntaToUpdate.tipo,
+          obrigatoria: perguntaToUpdate.obrigatoria,
+          ordem_exibicao: perguntas.findIndex(p => p.id === perguntaId) + 1,
+          opcoes: updatedOptions,
+      };
+
+      const message = {
+        tipo: "update_formulario",
+        conteudo: {
+          perguntas_editadas: [questionPayload],
+        },
+      };
+      sendWebSocketMessage(message);
+    }
   }
 
   const handleCreateForm = async (data: CreateFormValues) => {
@@ -257,10 +278,7 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({
-            ...data,
-            perguntas: [], // Na primeira etapa, sempre enviamos perguntas vazias
-          }),
+          body: JSON.stringify({ ...data, perguntas: [] }),
         }
       )
 
@@ -270,67 +288,25 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       }
 
       const newForm = await res.json()
+      setCreatedForm(newForm);
       setCreatedFormId(newForm.id)
-      setStep(2) // Avança para a etapa de adicionar perguntas
+      setPerguntas(newForm.perguntas || [])
+      setStep(2)
 
       toast.success(`Formulário "${data.titulo}" criado!`, {
         description: "Agora adicione as perguntas.",
       })
     } catch (error) {
-      let description = "Ocorreu um erro desconhecido."
-      if (error instanceof Error) {
-        description = error.message
-      }
+      const description = error instanceof Error ? error.message : "Ocorreu um erro desconhecido."
       toast.error("Erro ao criar formulário", { description })
     }
   }
 
-  const handleFinish = async () => {
-    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
-      toast.error("A conexão para edição não está ativa. Tente novamente.")
-      return
+  const handleFinish = () => {
+    if (createdForm) {
+      onFormCreated(createdForm)
     }
-
-    setIsFinishing(true)
-
-    try {
-      const payload = {
-        tipo: "update_formulario",
-        conteudo: {
-          titulo: getValues("titulo"),
-          descricao: getValues("descricao"),
-          perguntas_adicionadas: perguntas.map((p, index) => {
-            const baseQuestion = {
-              texto: p.pergunta,
-              tipo: p.tipo,
-              obrigatoria: p.obrigatoria,
-              ordem_exibicao: index + 1,
-            }
-            if (p.tipo === "nps") {
-              return { ...baseQuestion, escala_min: p.escala_min, escala_max: p.escala_max }
-            }
-            if ("opcoes" in p) {
-              return { ...baseQuestion, opcoes: p.opcoes }
-            }
-            return baseQuestion
-          }),
-        },
-      }
-
-      ws.current.send(JSON.stringify(payload))
-
-      toast.success("Alterações enviadas com sucesso!")
-      onFormCreated()
-      setIsOpen(false)
-    } catch (error) {
-      let description = "Ocorreu um erro desconhecido."
-      if (error instanceof Error) {
-        description = error.message
-      }
-      toast.error("Erro ao finalizar", { description })
-    } finally {
-      setIsFinishing(false)
-    }
+    setIsOpen(false)
   }
 
   return (
@@ -341,9 +317,12 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
         if (!open) {
           setPerguntas([])
           setStep(1)
+          setCreatedForm(null);
           setCreatedFormId(null)
           reset()
-          ws.current?.close()
+          if (ws.current) {
+            ws.current.close()
+          }
         }
       }}
     >
@@ -398,19 +377,18 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
                 <h3 className="font-medium text-lg">Perguntas</h3>
               </div>
 
-              {/* Lista de perguntas adicionadas */}
               <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                 {perguntas.map((pergunta, index) => (
                   <div key={pergunta.id} className="p-3 border rounded-lg space-y-3 bg-muted/50">
                     <div className="flex justify-between items-start">
                       <Label className="font-normal text-base">
-                        {index + 1}. {pergunta.pergunta}
+                        {index + 1}. {pergunta.texto} 
                       </Label>
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemovePergunta(pergunta.id)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    {"opcoes" in pergunta && (
+                    {(pergunta.tipo === 'multipla_escolha' || pergunta.tipo === 'caixa_selecao') && ("opcoes" in pergunta && Array.isArray(pergunta.opcoes)) && (
                       <div className="pl-4 space-y-2">
                         {pergunta.opcoes.map((opcao, opIndex: number) => (
                           <div key={opIndex} className="flex items-center gap-2">

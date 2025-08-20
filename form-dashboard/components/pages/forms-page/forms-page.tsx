@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import Cookies from "js-cookie"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
@@ -22,7 +22,6 @@ export default function FormsPage() {
 
   useEffect(() => {
     const accessToken = Cookies.get("access_token")
-
     if (!accessToken) {
       toast.error("Sessão expirada. Por favor, faça login novamente.")
       router.push("/login")
@@ -32,7 +31,6 @@ export default function FormsPage() {
 
     const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL
     if (!wsBaseUrl) {
-      console.error("A variável de ambiente NEXT_PUBLIC_WS_URL não está definida.")
       toast.error("Erro de configuração: URL do WebSocket não definida.")
       setIsLoading(false)
       return
@@ -42,20 +40,18 @@ export default function FormsPage() {
     const socket = new WebSocket(wsUrl)
 
     socket.onopen = () => {
-      setIsLoading(false)
+      console.log("FormsPage: WebSocket connection opened.");
     }
 
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        // Assuming the message directly contains the array of forms
-        if (Array.isArray(data)) {
-          setForms(data)
-        } else if (data.tipo === "initial_forms" && Array.isArray(data.conteudo)) {
-          // If the message is structured with a type and content
-          setForms(data.conteudo);
+        console.log("FormsPage: WebSocket message received:", data);
+
+        if (data.tipo === "lista_inicial" && data.conteudo && Array.isArray(data.conteudo.itens)) {
+          setForms(data.conteudo.itens);
+          setIsLoading(false);
         } else if (data.tipo === "form_updated" && data.conteudo) {
-          // Handle individual form updates
           setForms(prevForms => {
             const existingFormIndex = prevForms.findIndex(f => f.id === data.conteudo.id);
             if (existingFormIndex > -1) {
@@ -63,34 +59,35 @@ export default function FormsPage() {
               updatedForms[existingFormIndex] = data.conteudo;
               return updatedForms;
             } else {
-              return [...prevForms, data.conteudo]; // Add new form
+              return [...prevForms, data.conteudo];
             }
           });
         } else if (data.tipo === "form_deleted" && data.conteudo && data.conteudo.id) {
-          // Handle form deletion
           setForms(prevForms => prevForms.filter(f => f.id !== data.conteudo.id));
         }
       } catch (e) {
-        console.error("Erro ao processar mensagem WebSocket:", e)
-        toast.error("Falha ao processar dados recebidos do servidor.")
+        console.error("FormsPage: Error processing WebSocket message:", e)
       }
     }
 
     socket.onerror = (event) => {
-      console.error("WebSocket erro:", event)
-      toast.error("Erro na conexão com o servidor de formulários.")
+      console.error("FormsPage: WebSocket error:", event)
       setIsLoading(false)
     }
 
-    socket.onclose = () => {
-      console.log("WebSocket desconectado.")
-      // Optionally try to reconnect or show a message
+    socket.onclose = (ev: CloseEvent) => {
+      console.log("FormsPage: WebSocket disconnected.", ev)
     }
 
     return () => {
       socket.close()
     }
   }, [router])
+
+  const handleFormCreated = (newForm: Form) => {
+    toast.success("Formulário criado com sucesso!");
+    setForms(prevForms => [...prevForms, newForm]);
+  };
 
   if (isLoading) {
     return (
@@ -131,7 +128,7 @@ export default function FormsPage() {
           </p>
         </div>
       )}
-            <CreateFormDialog onFormCreated={() => toast.success("Formulário criado com sucesso!")} /> 
+      <CreateFormDialog onFormCreated={handleFormCreated} /> 
     </div>
   )
 }

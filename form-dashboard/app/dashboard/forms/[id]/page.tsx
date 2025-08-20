@@ -17,6 +17,7 @@ import { useParams } from "next/navigation"
 import Cookies from "js-cookie"
 import type { Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
+import { AddQuestionDialog } from "@/components/add-question-dialog"
 import { useNavigation } from "@/components/navigation-provider"
 import {
   Card,
@@ -148,15 +149,17 @@ const EditableQuestion = ({ pergunta, index, onUpdate }: {
 export default function FormDetailsPage() {
   const params = useParams()
   const { setBreadcrumbs } = useNavigation()
+  const [pendingDeletion, setPendingDeletion] = useState<string[]>([]);
 
   const id = params.id as string
-  const accessToken = Cookies.get("access_token") || null
+  const access_token = Cookies.get("access_token") || null
 
-  const { form, isLoading, error, sendMessage } = useFormWebSocket(id, accessToken)
+
+  const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token)
 
   const handleUpdateQuestion = (questionId: string, newText: string) => {
     if (form) {
-      sendMessage({
+      const message = {
         tipo: "update_formulario",
         conteudo: {
           perguntas_editadas: [
@@ -167,24 +170,25 @@ export default function FormDetailsPage() {
             },
           ],
         },
-      });
+      };
+      sendMessage(message);
     }
   };
 
   const handleDeleteQuestion = (questionId: string) => {
-    if (form) {
-      console.log(form.id, questionId)
-      sendMessage(
-        {
+    if (!form) return;
+
+    setPendingDeletion(prev => [...prev, questionId]);
+
+    setTimeout(() => {
+      const message = {
         "tipo": "update_formulario",
         "conteudo": {
-        "perguntas_removidas": [
-          questionId
-        ]
+          "perguntas_removidas": [questionId]
         }
-      }
-      )
-    }
+      };
+      sendMessage(message);
+    }, 500);
   }
 
   useEffect(() => {
@@ -235,7 +239,9 @@ export default function FormDetailsPage() {
       {form.perguntas.length > 0 ? (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {form.perguntas.map((pergunta, index) => (
-            <Card key={pergunta.id} className="group relative">
+            <Card 
+              key={pergunta.id} 
+              className={`group relative transition-all duration-500 ${pendingDeletion.includes(pergunta.id) ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
               <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
@@ -281,6 +287,7 @@ export default function FormDetailsPage() {
           </CardContent>
         </Card>
       )}
+      <AddQuestionDialog formId={form.id} onQuestionAdded={() => {}} />
     </div>
   )
 }

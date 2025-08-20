@@ -14,30 +14,15 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
   const router = useRouter()
 
   const renewSession = async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) {
-      console.error("NEXT_PUBLIC_API_URL is not defined.");
-      return;
-    }
-
     try {
-      const response = await fetch(`${apiUrl}/api/auth/renew-session`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${access_token}`,
-        },
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
       });
 
       if (response.ok) {
-        const data = await response.json();
-        if (data.access_token) {
-          Cookies.set("access_token", data.access_token, { expires: 7 }); // Renew cookie for 7 days
-          // Optionally, update the access_token state if it's managed here
-          // setAccessToken(data.access_token); // If access_token was a state
-        }
+        // Tokens refreshed successfully, new access_token is in cookies
+        console.log("Session renewed successfully.");
       } else if (response.status === 401) {
-        // Unauthorized, session truly expired or invalid token
         toast.error("Sessão expirada. Por favor, faça login novamente.");
         router.push("/login");
       } else {
@@ -56,12 +41,6 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
       return
     }
 
-    if (!access_token) {
-      toast.error("Sessão expirada. Por favor, faça login novamente.")
-      router.push("/login")
-      return
-    }
-
     const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL
     if (!wsBaseUrl) {
       console.error("A variável de ambiente NEXT_PUBLIC_WS_URL não está definida.")
@@ -75,44 +54,134 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     ws.current = socket
 
     socket.onopen = () => {
-      // Conexão estabelecida
+      console.log("WebSocket connection established.");
     }
 
     socket.onmessage = (event) => {
+      console.log("Debug [WebSocket]: Raw message received:", event.data);
       try {
-        const data = JSON.parse(event.data)
+        const data = JSON.parse(event.data);
+        console.log("Debug [WebSocket]: Parsed message data:", data);
+
         if (data.tipo && data.conteudo && data.conteudo.id) {
-          setForm(data.conteudo)
-          setError(null)
+          setForm(data.conteudo);
+          setError(null);
+          setIsLoading(false);
         } else {
-          // Mensagem WebSocket não reconhecida ou sem conteúdo de formulário
+          console.log("Debug [WebSocket]: Message not handled by 'setForm'", data);
         }
       } catch (e) {
-        console.error("Erro ao processar mensagem WebSocket:", e)
-        setError("Falha ao processar dados recebidos.")
-      } finally {
-        setIsLoading(false)
+        console.error("Erro ao processar mensagem WebSocket:", e);
+        setError("Falha ao processar dados recebidos.");
+        setIsLoading(false);
       }
-    }
+    };
 
     socket.onerror = (event) => {
       console.error("WebSocket erro:", event)
-      setError("Erro de conexão em tempo real.")
-      toast.error("Erro na conexão para atualizações em tempo real.")
+      // Do not set a fatal error state here, as Strict Mode can cause transient errors.
+      // The connection will close and the effect will retry.
+      // setError("Erro de conexão em tempo real.") 
+      toast.error("Ocorreu um erro na conexão em tempo real. Tentando reconectar...")
       setIsLoading(false)
+    }
+    
+    socket.onclose = () => {
+      console.log("WebSocket connection closed.");
     }
 
     return () => {
-      ws.current?.close()
+        if (socket) {
+            socket.close();
+            ws.current = null;
+        }
     }
-  }, [formId, router, access_token])
+  }, [formId, access_token])
 
   const sendMessage = async (message: object) => {
-    // Attempt to renew session before sending message
-    if (access_token) {
-      await renewSession();
+    // Attempt to renew session if access_token is present (might be expired)
+    // The access_token parameter to the hook is the initial one.
+    // We need to check if the current access_token from cookies is valid.
+    const currentAccessToken = Cookies.get("access_token");
+
+    if (!currentAccessToken) {
+      toast.error("Sessão expirada. Por favor, faça login novamente.");
+      router.push("/login");
+      return;
     }
 
+    // If the current access token is present, try to renew it proactively
+    // This will update the cookie if successful
+    await renewSession();
+
+    // After potential renewal, get the latest access token from cookies
+    const latestAccessToken = Cookies.get("access_token");
+
+    if (!latestAccessToken) {
+      toast.error("Sessão expirada após tentativa de renovação. Por favor, faça login novamente.");
+      router.push("/login");
+      return;
+    }
+
+    // Re-establish WebSocket connection if the token changed or connection is not open
+    // This part is crucial. If the token changed, the existing WS connection is likely invalid.
+    // The useEffect dependency on access_token should handle this, but a direct check here is safer.
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN || (ws.current.url.includes(`access_token=${access_token}`) && !ws.current.url.includes(`access_token=${latestAccessToken}`))) {
+      const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL;
+      if (!wsBaseUrl) {
+        console.error("A variável de ambiente NEXT_PUBLIC_WS_URL não está definida.");
+        toast.error("Configuração de ambiente inválida para a conexão em tempo real.");
+        return;
+      }
+      const newWsUrl = `${wsBaseUrl}/ws/formularios/${formId}?access_token=${latestAccessToken}`;
+      if (ws.current) {
+        ws.current.close(); // Close old connection if exists
+      }
+      const newSocket = new WebSocket(newWsUrl);
+      ws.current = newSocket;
+
+      // Add event listeners for the new socket
+      newSocket.onopen = () => {
+        console.log("WebSocket connection re-established with new token.");
+        // Now send the message after connection is open
+        if (newSocket.readyState === WebSocket.OPEN) {
+          newSocket.send(JSON.stringify(message));
+          console.log("Mensagem enviada após reconexão:", message);
+        }
+      };
+      newSocket.onmessage = (event) => {
+        console.log("Debug [WebSocket]: Raw message received:", event.data);
+        try {
+          const data = JSON.parse(event.data);
+          console.log("Debug [WebSocket]: Parsed message data:", data);
+
+          if (data.tipo && data.conteudo && data.conteudo.id) {
+            setForm(data.conteudo);
+            setError(null);
+            setIsLoading(false);
+          } else {
+            console.log("Debug [WebSocket]: Message not handled by 'setForm'", data);
+          }
+        } catch (e) {
+          console.error("Erro ao processar mensagem WebSocket:", e);
+          setError("Falha ao processar dados recebidos.");
+          setIsLoading(false);
+        }
+      };
+      newSocket.onerror = (event) => {
+        console.error("WebSocket erro:", event);
+        toast.error("Ocorreu um erro na conexão em tempo real. Tentando reconectar...");
+        setIsLoading(false);
+      };
+      newSocket.onclose = () => {
+        console.log("WebSocket connection closed.");
+      };
+
+      // Return early, message will be sent in onopen of new socket
+      return;
+    }
+
+    // If WebSocket is already open and token is valid, send message directly
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message))
       console.log("Mensagem enviada:", message)
