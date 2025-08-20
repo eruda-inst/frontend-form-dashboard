@@ -13,9 +13,61 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { MenubarItemData, MenubarMenuData, MenubarContentItem } from "@/app/types/menubar";
+import { useMenubar } from "@/components/menubar-context";
+import {
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarShortcut,
+  MenubarTrigger,
+} from "@/components/ui/menubar"
 
-export function DashboardHeader() {
+// Define the interfaces for the menubar data structure
+
+
+interface DashboardHeaderProps {
+  // menubarData?: MenubarMenuData[]; // Removed as it will be consumed from context
+}
+
+// Helper function to render menubar items recursively
+const renderMenubarItems = (items: MenubarContentItem[]) => {
+  return items.map((item, index) => {
+    // Type guard to check if it's a MenubarMenuData (nested menu)
+    if ('content' in item && Array.isArray(item.content)) {
+      // If it has 'content' and it's an array, it's a MenubarMenuData
+      return (
+        <MenubarMenu key={index}>
+          <MenubarTrigger>{item.trigger}</MenubarTrigger>
+          <MenubarContent>
+            {renderMenubarItems(item.content)}
+          </MenubarContent>
+        </MenubarMenu>
+      );
+    } else {
+      // If it doesn't have 'content' or 'content' is not an array, it must be a MenubarItemData
+      const menuItem = item as MenubarItemData; // Explicit type assertion
+
+      if (menuItem.separator) {
+        return <MenubarSeparator key={index} />;
+      }
+      if (menuItem.component) {
+        return <MenubarItem key={index}>{menuItem.component}</MenubarItem>;
+      }
+      return (
+        <MenubarItem key={index} onClick={menuItem.onClick}>
+          {menuItem.label} {menuItem.shortcut && <MenubarShortcut>{menuItem.shortcut}</MenubarShortcut>}
+        </MenubarItem>
+      );
+    }
+  });
+};
+
+export function DashboardHeader({}: DashboardHeaderProps) {
   const { breadcrumbs } = useNavigation()
+  const { menubarData } = useMenubar();
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2">
@@ -43,6 +95,18 @@ export function DashboardHeader() {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
+        {menubarData && menubarData.length > 0 && (
+          <Menubar>
+            {menubarData.map((menu, index) => (
+              <MenubarMenu key={index}>
+                <MenubarTrigger>{menu.trigger}</MenubarTrigger>
+                <MenubarContent>
+                  {renderMenubarItems(menu.content)}
+                </MenubarContent>
+              </MenubarMenu>
+            ))}
+          </Menubar>
+        )}
       </div>
     </header>
   )

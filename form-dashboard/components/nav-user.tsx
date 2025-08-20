@@ -31,6 +31,7 @@ import {
 import { EditProfileDialog } from "./edit-profile-dialog"
 
 export function NavUser({ user }: { user: User }) {
+  console.log("NavUser component rendered with user:", user)
   const { isMobile } = useSidebar()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
