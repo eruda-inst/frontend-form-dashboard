@@ -32,9 +32,9 @@ export function EditProfileDialog({ user }: { user: User }) {
   const [isUpdating, setIsUpdating] = useState(false)
 
   // Form fields state
-  const [editedName, setEditedName] = useState(user.name)
+  const [editedName, setEditedName] = useState(user.nome)
   const [editedEmail, setEditedEmail] = useState(user.email)
-  const [editedImagem, setEditedImagem] = useState(user.avatar)
+  const [editedImagem, setEditedImagem] = useState(user.imagem)
   const [editedGenero, setEditedGenero] = useState(user.genero)
 
   // Password change state
@@ -109,9 +109,7 @@ export function EditProfileDialog({ user }: { user: User }) {
             username: user.username, // username is not editable in this form
             genero: editedGenero,
             imagem: editedImagem,
-            nivel: user.nivel,
             ativo: true,
-            grupo_id: user.grupo_id,
           }),
         },
       )

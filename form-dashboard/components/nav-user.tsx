@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { User } from "@/app/types/user"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
@@ -29,12 +29,49 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { EditProfileDialog } from "./edit-profile-dialog"
+import { Skeleton } from "./ui/skeleton"
 
-export function NavUser({ user }: { user: User }) {
-  console.log("NavUser component rendered with user:", user)
+export function NavUser() {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const { isMobile } = useSidebar()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userCookie = Cookies.get("user")
+      const accessToken = Cookies.get("access_token")
+
+      if (userCookie && accessToken) {
+        try {
+          const userData = JSON.parse(userCookie)
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/usuarios/${userData.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            }
+          )
+          if (!response.ok) {
+            throw new Error("Failed to fetch user data")
+          }
+          const data = await response.json()
+          setUser(data)
+        } catch (error) {
+          console.error(error)
+          toast.error("Failed to load user profile.")
+        } finally {
+          setIsLoading(false)
+        }
+      } else {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUser()
+  }, [])
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -49,12 +86,33 @@ export function NavUser({ user }: { user: User }) {
     }
   }
 
-  const getInitials = (name: string) => {
-    if (!name) return ""
-    const names = name.split(" ")
+  const getInitials = (nome: string) => {
+    if (!nome) return ""
+    const names = nome.split(" ")
     const firstInitial = names[0]?.[0] || ""
     const lastInitial = names.length > 1 ? names[names.length - 1]?.[0] || "" : ""
     return `${firstInitial}${lastInitial}`.toUpperCase()
+  }
+
+  if (isLoading) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" className="animate-pulse">
+            <Skeleton className="h-8 w-8 rounded-2xl" />
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-16 mt-1" />
+            </div>
+            <ChevronsUpDown className="ml-auto size-4" />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
+
+  if (!user) {
+    return null // Or some fallback UI
   }
 
   return (
@@ -67,14 +125,14 @@ export function NavUser({ user }: { user: User }) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-2xl">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={user.imagem} alt={user.nome} />
                 <AvatarFallback className="rounded-lg">
-                  {getInitials(user.name)}
+                  {getInitials(user.nome)}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.grupo}</span>
+                <span className="truncate font-medium">{user.nome}</span>
+                <span className="truncate text-xs">{user.grupo.nome}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -88,14 +146,14 @@ export function NavUser({ user }: { user: User }) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={user.imagem} alt={user.nome} />
                   <AvatarFallback className="rounded-lg">
-                    {getInitials(user.name)}
+                    {getInitials(user.nome)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs">{user.grupo}</span>
+                  <span className="truncate font-medium">{user.nome}</span>
+                  <span className="truncate text-xs">{user.grupo.nome}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

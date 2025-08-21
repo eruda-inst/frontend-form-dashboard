@@ -28,12 +28,6 @@ import {
 // import Separator from "@/components/ui/separator"
 const navMain = [
     {
-      title: "Dashboard",
-      url: "#",
-      icon: LayoutDashboard,
-      isActive: true
-    },
-    {
       title: "Formulários",
       url: "#",
       icon: ClipboardPenLine,
@@ -137,10 +131,7 @@ const projects = [
     },
   ]
 
-export function AppSidebar({
-  user,
-  ...props
-}: { user: User } & React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarContent>
@@ -149,7 +140,7 @@ export function AppSidebar({
         {/* <NavSecondary items={navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   )

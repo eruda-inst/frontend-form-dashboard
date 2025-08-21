@@ -23,9 +23,9 @@ const NavigationContext = createContext<NavigationContextValue | undefined>(
 )
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
-  const [activeTitle, setActiveTitle] = useState("Dashboard")
+  const [activeTitle, setActiveTitle] = useState("Formulários")
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([
-    { title: "Dashboard" },
+    { title: "Formulários" },
   ])
 
   return (

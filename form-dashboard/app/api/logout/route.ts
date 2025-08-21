@@ -4,7 +4,8 @@ import { cookies } from "next/headers"
 export async function POST(request: Request) {
   // 1. Pega a instância da "loja" de cookies uma única vez.
   const cookieStore = cookies()
-  const accessToken = cookieStore.get("access_token")?.value
+  const store = await cookieStore;
+  const accessToken = store.get("access_token")?.value
 
   if (accessToken) {
     try {
@@ -25,9 +26,9 @@ export async function POST(request: Request) {
 
   // 2. Limpa os cookies no navegador do usuário.
   // É crucial que isso seja feito no lado do servidor para remover cookies httpOnly.
-  cookieStore.delete("access_token")
-  cookieStore.delete("refresh_token")
-  cookieStore.delete("user")
+  store.delete("access_token")
+  store.delete("refresh_token")
+  store.delete("user")
 
   // 3. Retorna uma resposta de sucesso para o cliente.
   return NextResponse.json({ message: "Logout realizado com sucesso." })

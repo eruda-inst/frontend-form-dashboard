@@ -217,9 +217,18 @@ export default function FormDetailsPage() {
             label: "Editar questões",
             onClick: () => router.push(`/dashboard/forms/${id}/edit-questions`),
           },
+        ],
+      },
+      {
+        trigger: "Respostas",
+        content: [
           {
-            label: "Visualizar respostas",
-            onClick: () => router.push(`/dashboard/forms`),
+            label: "Visualizar",
+            onClick: () => router.push(`/dashboard/forms/${id}/edit-questions`),
+          },
+          {
+            label: "Exportar",
+            onClick: () => router.push(`/dashboard/export/${id}`),
           },
         ],
       },
@@ -249,73 +258,16 @@ export default function FormDetailsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto grid gap-8">
-      <Card className="p-0">
-        <CardHeader className="border-b bg-muted/30 p-6">
-          <CardTitle className="text-2xl">{form.titulo}</CardTitle>
-          <CardDescription className="text-base">
-            {form.descricao}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
+    <>
+      <div className="w-full border-b py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-4xl font-bold tracking-tight">{form.titulo}</h1>
+          <p className="text-lg text-muted-foreground mt-2">{form.descricao}</p>
           <p className="text-sm text-muted-foreground">
-            Criado em: {new Date(form.criado_em).toLocaleDateString("pt-BR")}
-          </p>
-        </CardContent>
-      </Card>
-
-      {form.perguntas.length > 0 ? (
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {form.perguntas.map((pergunta, index) => (
-            <Card 
-              key={pergunta.id} 
-              className={`group relative transition-all duration-500 ${pendingDeletion.includes(pergunta.id) ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-              <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="cursor-pointer absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Essa ação não pode ser desfeita. Isso irá deletar permanentemente esta pergunta do formulário.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleDeleteQuestion(pergunta.id)}>Deletar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-              <CardHeader>
-                <div className="w-full overflow-hidden">
-                  <EditableQuestion
-                    pergunta={pergunta}
-                    index={index}
-                    onUpdate={handleUpdateQuestion}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <RenderQuestion pergunta={pergunta} />
-              </CardContent>
-            </Card>
-          ))}
+              Criado em: {new Date(form.criado_em).toLocaleDateString("pt-BR")}
+            </p>
         </div>
-      ) : (
-        <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
-            Este formulário ainda não possui perguntas.
-          </CardContent>
-        </Card>
-      )}
-      <AddQuestionDialog formId={form.id} onQuestionAdded={() => {}} />
-    </div>
+      </div>
+    </>
   )
 }

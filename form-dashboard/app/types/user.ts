@@ -1,12 +1,14 @@
 export type User = {
-  id: string
-  name: string
-  email: string
-  avatar: string
-  grupo: string
-  username: string
-  genero: string
-  grupo_id: string
-  nivel: string
-}
-
+  id: string;
+  nome: string;
+  email: string;
+  imagem: string;
+  grupo: {
+    id: string;
+    nome: string;
+  };
+  username: string;
+  genero: string;
+  ativo: boolean;
+  criado_em: string;
+};

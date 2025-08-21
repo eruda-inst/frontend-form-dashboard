@@ -70,7 +70,7 @@ export function DashboardHeader({}: DashboardHeaderProps) {
   const { menubarData } = useMenubar();
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2">
+    <header className="flex h-16 shrink-0 items-center gap-2 justify-between pr-3">
       <div className="flex items-center gap-2 px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator
@@ -95,6 +95,7 @@ export function DashboardHeader({}: DashboardHeaderProps) {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
+      </div>
         {menubarData && menubarData.length > 0 && (
           <Menubar>
             {menubarData.map((menu, index) => (
@@ -107,7 +108,6 @@ export function DashboardHeader({}: DashboardHeaderProps) {
             ))}
           </Menubar>
         )}
-      </div>
     </header>
   )
 }

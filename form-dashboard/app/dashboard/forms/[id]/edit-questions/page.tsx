@@ -195,13 +195,14 @@ export default function FormDetailsPage() {
     if (form) {
       setBreadcrumbs([
         { title: "Formulários", url: "/dashboard" },
-        { title: form.titulo },
+        { title: form.titulo, url: `/dashboard/forms/${id}` },
+        { title: "Editar questões" },
       ])
     }
     return () => {
       setBreadcrumbs([{ title: "Formulários" }])
     }
-  }, [form, setBreadcrumbs])
+  }, [form, setBreadcrumbs, id])
 
   if (isLoading) {
     return (
@@ -221,7 +222,7 @@ export default function FormDetailsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto grid gap-8">
+    <div className="w-full grid gap-8 px-4 sm:px-6 lg:px-8">
       <Card className="p-0">
         <CardHeader className="border-b bg-muted/30 p-6">
           <CardTitle className="text-2xl">{form.titulo}</CardTitle>
@@ -237,7 +238,7 @@ export default function FormDetailsPage() {
       </Card>
 
       {form.perguntas.length > 0 ? (
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {form.perguntas.map((pergunta, index) => (
             <Card 
               key={pergunta.id} 

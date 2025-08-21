@@ -48,10 +48,11 @@ export async function POST(request: Request) {
     }
 
     // Usa os dados validados e com tipo garantido.
-    const { accessToken, refreshToken, firstName, lastName, email, image, gender, username: apiUsername } = parsedData.data;
+    const { id, accessToken, refreshToken, firstName, lastName, email, image, gender, username: apiUsername } = parsedData.data;
 
     // 3. Define os cookies na resposta que será enviada ao navegador
     const user = {
+      id,
       name: `${firstName} ${lastName}`,
       email,
       avatar: image,
