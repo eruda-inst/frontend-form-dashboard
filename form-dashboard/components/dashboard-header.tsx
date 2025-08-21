@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useNavigation } from "@/components/navigation-provider"
 import {
@@ -15,6 +16,8 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { MenubarItemData, MenubarMenuData, MenubarContentItem } from "@/app/types/menubar";
 import { useMenubar } from "@/components/menubar-context";
+import { useDashboard } from "@/components/dashboard-context";
+import { User } from "@/app/types/user";
 import {
   Menubar,
   MenubarContent,
@@ -24,6 +27,7 @@ import {
   MenubarShortcut,
   MenubarTrigger,
 } from "@/components/ui/menubar"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 
 // Define the interfaces for the menubar data structure
 
@@ -68,6 +72,40 @@ const renderMenubarItems = (items: MenubarContentItem[]) => {
 export function DashboardHeader({}: DashboardHeaderProps) {
   const { breadcrumbs } = useNavigation()
   const { menubarData } = useMenubar();
+  const { usersInRoom } = useDashboard();
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+
+  console.log("usersInRoom:", usersInRoom);
+
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      try {
+        const response = await fetch("/api/usuarios"); // Changed to /api/usuarios
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setAllUsers(data);
+        console.log("allUsers fetched:", data);
+      } catch (error) {
+        console.error("Error fetching all users:", error);
+      }
+    };
+
+    fetchAllUsers();
+  }, []);
+
+  const usersWithImages = usersInRoom.map(userInRoom => {
+    const foundUser = allUsers.find(user => user.username === userInRoom.username);
+    const image = foundUser ? foundUser.imagem : "/default-avatar.png";
+    console.log(`User ${userInRoom.username}: image = ${image}, foundUser =`, foundUser);
+    return {
+      ...userInRoom,
+      image: image
+    };
+  });
+
+  console.log("usersWithImages:", usersWithImages);
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 justify-between pr-3">
@@ -96,7 +134,16 @@ export function DashboardHeader({}: DashboardHeaderProps) {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-        {menubarData && menubarData.length > 0 && (
+      <div className="flex gap-2">
+        <div className="*:data-[slot=avatar]:ring-background flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:grayscale">
+          {usersWithImages.map((user, index) => (
+            <Avatar key={index}>
+              <AvatarImage src={user.image} alt={user.username} />
+              <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          ))}
+        </div>
+{menubarData && menubarData.length > 0 && (
           <Menubar>
             {menubarData.map((menu, index) => (
               <MenubarMenu key={index}>
@@ -108,6 +155,10 @@ export function DashboardHeader({}: DashboardHeaderProps) {
             ))}
           </Menubar>
         )}
+
+      </div>
+        
+        
     </header>
   )
 }

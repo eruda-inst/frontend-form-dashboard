@@ -13,12 +13,14 @@ import {
 } from "@/components/ui/alert-dialog"
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter }
+from "next/navigation"
 import Cookies from "js-cookie"
 import type { Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { AddQuestionDialog } from "@/components/add-question-dialog"
 import { useNavigation } from "@/components/navigation-provider"
+import { useDashboard } from "@/components/dashboard-context"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useMenubar } from "@/components/menubar-context";
 import { MenubarMenuData } from "@/app/types/menubar";
@@ -154,13 +156,21 @@ export default function FormDetailsPage() {
   const router = useRouter();
   const { setBreadcrumbs } = useNavigation()
   const { setMenubarData } = useMenubar();
+  const { setUsersInRoom } = useDashboard();
   const [pendingDeletion, setPendingDeletion] = useState<string[]>([]);
 
   const id = params.id as string
   const access_token = Cookies.get("access_token") || null
 
 
-  const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token)
+  const { form, isLoading, error, sendMessage, usersInRoom } = useFormWebSocket(id, access_token)
+
+  useEffect(() => {
+    setUsersInRoom(usersInRoom);
+    return () => {
+      setUsersInRoom([]); // Clear usersInRoom when component unmounts
+    };
+  }, [usersInRoom, setUsersInRoom]);
 
   const handleUpdateQuestion = (questionId: string, newText: string) => {
     if (form) {
