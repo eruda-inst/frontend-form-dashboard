@@ -1,304 +1,145 @@
 "use client"
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-
-import { useEffect, useState, useRef } from "react";
-import { useParams }
-from "next/navigation"
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
 import Cookies from "js-cookie"
-import type { Pergunta } from "@/app/types/forms"
-import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
-import { AddQuestionDialog } from "@/components/add-question-dialog"
-import { useNavigation } from "@/components/navigation-provider"
-import { useDashboard } from "@/components/dashboard-context"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
+
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Button } from "@/components/ui/button"
-import { Loader2, Trash } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 
-// Componente auxiliar para renderizar cada tipo de pergunta
-const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
-  switch (pergunta.tipo) {
-    case "texto_simples":
-      return <Input placeholder="Resposta curta" disabled />
-    case "texto_longo":
-      return <Textarea placeholder="Resposta longa" disabled />
-    case "data":
-      return <Input type="date" disabled />
-    case "numero":
-    case "nps":
-      return <Input type="number" placeholder="0" disabled />
-    case "multipla_escolha":
-      if ("opcoes" in pergunta) {
-        return (
-          <RadioGroup disabled>
-            {pergunta.opcoes.map((opcao, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value={opcao.texto}
-                  id={`${pergunta.id}-${index}`}
-                />
-                <Label htmlFor={`${pergunta.id}-${index}`} className="font-normal">
-                  {opcao.texto}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        )
+export default function OperabilitiesPage() {
+  const { id: formulario_id } = useParams()
+  const [isPublished, setIsPublished] = useState(false)
+  const [slug, setSlug] = useState("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      const accessToken = Cookies.get("access_token")
+      if (!accessToken) {
+        toast.error("Sessão expirada. Por favor, faça login novamente.")
+        return
       }
-      return null
-    case "caixa_selecao":
-      if ("opcoes" in pergunta) {
-        return (
-          <div className="space-y-2">
-            {pergunta.opcoes.map((opcao, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <Checkbox id={`${pergunta.id}-${index}`} disabled />
-                <Label htmlFor={`${pergunta.id}-${index}`} className="font-normal">
-                  {opcao.texto}
-                </Label>
-              </div>
-            ))}
-          </div>
-        )
-      }
-      return null
-    default:
-      return (
-        <p className="text-sm text-muted-foreground">
-          Tipo de pergunta não suportado.
-        </p>
-      )
-  }
-}
 
-const EditableQuestion = ({ pergunta, index, onUpdate }: {
-  pergunta: Pergunta;
-  index: number;
-  onUpdate: (id: string, texto: string) => void;
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [text, setText] = useState(pergunta.texto);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-    }
-  }, [isEditing]);
-
-  useEffect(() => {
-    setText(pergunta.texto);
-  }, [pergunta.texto]);
-
-  const handleUpdate = () => {
-    setIsEditing(false);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newText = e.target.value;
-    setText(newText);
-    if (newText.trim() !== pergunta.texto) {
-      onUpdate(pergunta.id, newText.trim());
-    }
-  };
-
-  return (
-    <div onClick={() => setIsEditing(true)} className="cursor-pointer">
-      {isEditing ? (
-        <Input
-          ref={inputRef}
-          type="text"
-          value={text}
-          onChange={handleChange}
-          onBlur={handleUpdate}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleUpdate();
-            }
-          }}
-          className="text-lg font-medium"
-        />
-      ) : (
-        <CardTitle className="text-lg font-medium break-words">
-          {index + 1}. {pergunta.texto}
-        </CardTitle>
-      )}
-    </div>
-  );
-};
-
-export default function FormDetailsPage() {
-  const params = useParams()
-  const { setBreadcrumbs } = useNavigation()
-  const { setUsersInRoom } = useDashboard();
-  const [pendingDeletion, setPendingDeletion] = useState<string[]>([]);
-
-  const id = params.id as string
-  const access_token = Cookies.get("access_token") || null
-
-
-  const { form, isLoading, error, sendMessage, usersInRoom } = useFormWebSocket(id, access_token)
-
-  useEffect(() => {
-    setUsersInRoom(usersInRoom);
-    return () => {
-      setUsersInRoom([]); // Clear usersInRoom when component unmounts
-    };
-  }, [usersInRoom, setUsersInRoom]);
-
-  const handleUpdateQuestion = (questionId: string, newText: string) => {
-    if (form) {
-      const message = {
-        tipo: "update_formulario",
-        conteudo: {
-          perguntas_editadas: [
-            {
-              id: questionId,
-              texto: newText,
-              ordem_exibicao: form.perguntas.find(p => p.id === questionId)?.ordem_exibicao ?? 0
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/formularios/${formulario_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
             },
-          ],
-        },
-      };
-      sendMessage(message);
-    }
-  };
+          }
+        )
 
-  const handleDeleteQuestion = (questionId: string) => {
-    if (!form) return;
-
-    setPendingDeletion(prev => [...prev, questionId]);
-
-    setTimeout(() => {
-      const message = {
-        "tipo": "update_formulario",
-        "conteudo": {
-          "perguntas_removidas": [questionId]
+        if (!res.ok) {
+          throw new Error("Falha ao buscar o status do formulário.")
         }
-      };
-      sendMessage(message);
-    }, 500);
-  }
 
-  useEffect(() => {
-    if (form) {
-      setBreadcrumbs([
-        { title: "Formulários", url: "/dashboard" },
-        { title: form.titulo, url: `/dashboard/forms/${id}` },
-        { title: "Editar questões" },
-      ])
+        const data = await res.json()
+        setIsPublished(data.publicado)
+      } catch (error: any) {
+        toast.error("Erro ao buscar status do formulário", {
+          description: error.message,
+        })
+      }
     }
-    return () => {
-      setBreadcrumbs([{ title: "Formulários" }])
+
+    fetchStatus()
+  }, [formulario_id])
+
+  const handleTogglePublish = async (checked: boolean) => {
+    const accessToken = Cookies.get("access_token")
+    if (!accessToken) {
+      toast.error("Sessão expirada. Por favor, faça login novamente.")
+      return
     }
-  }, [form, setBreadcrumbs, id])
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-full">
-        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-        <span>Carregando formulário...</span>
-      </div>
-    )
+    const endpoint = checked ? "publicar" : "despublicar"
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/formularios/${formulario_id}/${endpoint}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      )
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || `Falha ao ${endpoint} o formulário.`)
+      }
+
+      setIsPublished(checked)
+      toast.success(`Formulário ${checked ? "publicado" : "despublicado"} com sucesso!`)
+
+      if (checked) {
+        setSlug(formulario_id as string)
+        setIsDialogOpen(true)
+      }
+    } catch (error: any) {
+      toast.error(`Erro ao ${endpoint} formulário`, { description: error.message })
+    }
   }
 
-  if (error) {
-    return <div className="p-4 text-center text-red-500">Erro: {error}</div>
-  }
-
-  if (!form) {
-    return <div className="p-4 text-center">Formulário não encontrado.</div>
-  }
+  const formUrl = `${process.env.NEXT_PUBLIC_FORM_URL}/form/${slug}`
 
   return (
-    <div className="w-full grid gap-8 px-4 sm:px-6 lg:px-8">
-      <Card className="p-0">
-        <CardHeader className="border-b bg-muted/30 p-6">
-          <CardTitle className="text-2xl">{form.titulo}</CardTitle>
-          <CardDescription className="text-base">
-            {form.descricao}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <p className="text-sm text-muted-foreground">
-            Criado em: {new Date(form.criado_em).toLocaleDateString("pt-BR")}
-          </p>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Configurações de Operabilidade</h1>
+        <p className="text-muted-foreground">
+          Gerencie as configurações de operabilidade do seu formulário.
+        </p>
+      </div>
 
-      {form.perguntas.length > 0 ? (
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {form.perguntas.map((pergunta, index) => (
-            <Card 
-              key={pergunta.id} 
-              className={`group relative transition-all duration-500 ${pendingDeletion.includes(pergunta.id) ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-              <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="cursor-pointer absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Essa ação não pode ser desfeita. Isso irá deletar permanentemente esta pergunta do formulário.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleDeleteQuestion(pergunta.id)}>Deletar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-              <CardHeader>
-                <div className="w-full overflow-hidden">
-                  <EditableQuestion
-                    pergunta={pergunta}
-                    index={index}
-                    onUpdate={handleUpdateQuestion}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <RenderQuestion pergunta={pergunta} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
-            Este formulário ainda não possui perguntas.
-          </CardContent>
-        </Card>
-      )}
-      <AddQuestionDialog formId={form.id} onQuestionAdded={() => {}} />
+      <div className="space-y-4">
+        <Label className="hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950">
+          <Checkbox
+            id="toggle-publish"
+            checked={isPublished}
+            onCheckedChange={handleTogglePublish}
+            className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
+          />
+          <div className="grid gap-1.5 font-normal">
+            <p className="text-sm leading-none font-medium">Ativar formulário</p>
+            <p className="text-muted-foreground text-sm">
+              Torne seu formulário acessível publicamente para que os usuários possam
+              responder.
+            </p>
+          </div>
+        </Label>
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Formulário Publicado!</DialogTitle>
+            <DialogDescription>
+              Seu formulário está online e pronto para receber respostas. Compartilhe o
+              link abaixo:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2">
+            <Input value={formUrl} readOnly />
+            <Button onClick={() => navigator.clipboard.writeText(formUrl)}>
+              Copiar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
