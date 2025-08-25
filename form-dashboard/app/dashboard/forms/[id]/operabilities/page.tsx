@@ -86,7 +86,9 @@ export default function OperabilitiesPage() {
       toast.success(`Formulário ${checked ? "publicado" : "despublicado"} com sucesso!`)
 
       if (checked) {
-        setSlug(formulario_id as string)
+        const data = await res.json()
+        
+        setSlug(data.slug_publico as string)
         setIsDialogOpen(true)
       }
     } catch (error: any) {
