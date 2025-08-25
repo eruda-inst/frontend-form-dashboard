@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import type { User } from "@/app/types/user"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
@@ -8,14 +8,20 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,  DialogContent,  DialogDescription,  DialogHeader,  DialogTitle,  DialogTrigger,  DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Check, Loader2, Smile } from "lucide-react"
+import { Check, Loader2, Smile, Pencil } from "lucide-react"
 
 // Helper function to get initials from a name
 const getInitials = (name: string) => {
@@ -30,6 +36,9 @@ export function EditProfileDialog({ user }: { user: User }) {
   const router = useRouter()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isAvatarHovered, setIsAvatarHovered] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
   // Form fields state
   const [editedName, setEditedName] = useState(user.nome)
@@ -40,6 +49,58 @@ export function EditProfileDialog({ user }: { user: User }) {
   // Password change state
   const [newPassword, setNewPassword] = useState("")
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append("arquivo", file)
+
+    setIsUploading(true)
+    const accessToken = Cookies.get("access_token")
+    if (!accessToken) {
+      toast.error("Sessão expirada. Por favor, faça login novamente.")
+      router.push("/login")
+      setIsUploading(false)
+      return
+    }
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/usuarios/me/imagem`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: formData,
+        },
+      )
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || "Falha ao carregar imagem.")
+      }
+
+      const data = await res.json()
+      setEditedImagem(data.imagem)
+      const updatedUser = { ...user, imagem: data.imagem };
+      Cookies.set("user", JSON.stringify(updatedUser), { expires: 7, path: '/' });
+
+
+      toast.success("Imagem de perfil atualizada com sucesso!")
+      router.refresh()
+    } catch (error: any) {
+      toast.error("Erro ao carregar imagem", { description: error.message })
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const handleChangePassword = async () => {
     if (!newPassword.trim()) {
@@ -146,18 +207,42 @@ export function EditProfileDialog({ user }: { user: User }) {
           onSelect={(e) => e.preventDefault()} // Prevents DropdownMenu from closing
         >
           <Smile />
-          Editar Perfil
+         Perfil e Conta
         </DropdownMenuItem>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
             <div className="flex items-center gap-4 mb-4">
-                <Avatar className="h-20 w-20 ">
-                    <AvatarImage src={editedImagem} alt={editedName} />
-                    <AvatarFallback className="text-2xl">
-                        {getInitials(editedName)}
-                    </AvatarFallback>
-                </Avatar>
+                <div
+                  className="relative cursor-pointer"
+                  onMouseEnter={() => setIsAvatarHovered(true)}
+                  onMouseLeave={() => setIsAvatarHovered(false)}
+                  onClick={handleAvatarClick}
+                >
+                  <Avatar className="h-20 w-20">
+                      <AvatarImage src={editedImagem} alt={editedName} />
+                      <AvatarFallback className="text-2xl">
+                          {getInitials(editedName)}
+                      </AvatarFallback>
+                  </Avatar>
+                  {(isAvatarHovered || isUploading) && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-full">
+                      {isUploading ? (
+                        <Loader2 className="h-8 w-8 text-white animate-spin" />
+                      ) : (
+                        <Pencil className="h-8 w-8 text-white" />
+                      )}
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept="image/*"
+                    disabled={isUploading}
+                  />
+                </div>
                 <div>
                     <DialogTitle>Editar Perfil</DialogTitle>
                     <DialogDescription>
@@ -186,14 +271,6 @@ export function EditProfileDialog({ user }: { user: User }) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="imagem">Link Foto de Perfil</Label>
-              <Input
-                id="imagem"
-                value={editedImagem}
-                onChange={(e) => setEditedImagem(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
               <Label>Gênero</Label>
               <RadioGroup value={editedGenero} onValueChange={setEditedGenero}>
                 <div className="flex items-center gap-3">
@@ -210,24 +287,16 @@ export function EditProfileDialog({ user }: { user: User }) {
                 </div>
               </RadioGroup>
             </div>
-            <div className="flex">
+            <div className="grid gap-2">
+              <Label>Senha</Label>
               <Input
-                className="rounded-r-none"
                 type="password"
                 placeholder="Nova senha"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 disabled={isUpdatingPassword}
               />
-              <Button
-                type="button"
-                className="border-l-0 rounded-l-none"
-                variant={"outline"}
-                onClick={handleChangePassword}
-                disabled={isUpdatingPassword || !newPassword.trim()}
-              >
-                {isUpdatingPassword ? <Loader2 className="animate-spin" /> : <Check />}
-              </Button>
+              
             </div>
           </div>
           <DialogFooter>
