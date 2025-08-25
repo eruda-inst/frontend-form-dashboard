@@ -6,11 +6,11 @@ import { z } from "zod";
 const loginApiSchema = z.object({
   id: z.string(),
   username: z.string(),
-  email: z.string().email(),
+  email: z.string(),
   firstName: z.string(),
   lastName: z.string(),
   gender: z.string(),
-  image: z.string(),
+  image: z.string().nullable(),
   accessToken: z.string(),
   refreshToken: z.string(),
 });

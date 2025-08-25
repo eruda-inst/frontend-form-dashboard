@@ -132,12 +132,12 @@ export default function UsersPage() {
     }
 
     try {
-      // A API está sendo chamada para uma atualização parcial (PUT apenas com a senha).
+      // A API está sendo chamada para uma atualização parcial (PATCH apenas com a senha).
       // Isso é mais seguro e eficiente do que enviar todos os dados do usuário.
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/usuarios/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/usuarios/${userId}/senha`,
         {
-          method: "PUT",
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,

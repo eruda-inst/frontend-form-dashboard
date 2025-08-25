@@ -80,7 +80,7 @@ export function UserActionsDialog({ user, onActionComplete }: UserActionsDialogP
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/usuarios/${user.id}`,
         {
-          method: "PUT",
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
