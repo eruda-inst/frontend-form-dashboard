@@ -10,7 +10,7 @@ const loginApiSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   gender: z.string(),
-  image: z.string().url(),
+  image: z.string(),
   accessToken: z.string(),
   refreshToken: z.string(),
 });
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     if (!apiRes.ok) {
       const errorData = await apiRes.json();
       return NextResponse.json(
-        { message: errorData.message || "Falha no login" },
+        { message: errorData || "Falha no login" },
         { status: apiRes.status }
       );
     }
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     if (!parsedData.success) {
       console.error("Erro de validação Zod:", parsedData.error.flatten());
       return NextResponse.json(
-        { message: "Resposta inválida da API de autenticação." },
+        { message: "Resposta inválida da API de autenticação." , response: data},
         { status: 500 }
       );
     }
