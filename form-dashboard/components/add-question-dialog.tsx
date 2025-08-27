@@ -87,11 +87,8 @@ export function AddQuestionDialog({
         }
       }
 
-      socket.onclose = () => console.log("WebSocket desconectado.")
-      socket.onerror = (error) => {
-        console.error("WebSocket erro:", error)
-        toast.error("Erro na conexão em tempo real.")
-      }
+      
+      
 
       return () => {
         if (ws.current) {

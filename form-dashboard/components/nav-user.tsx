@@ -60,7 +60,7 @@ export function NavUser() {
           const data = await response.json()
           setUser(data)
         } catch (error) {
-          console.error(error)
+          
           toast.error("Failed to load user profile.")
         } finally {
           setIsLoading(false)
@@ -80,7 +80,7 @@ export function NavUser() {
         method: "POST",
       })
     } catch (error) {
-      console.error("Falha ao chamar a API de logout:", error)
+      
     } finally {
       router.push("/login")
     }

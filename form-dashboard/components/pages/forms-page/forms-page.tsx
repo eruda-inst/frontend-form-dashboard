@@ -39,14 +39,12 @@ export default function FormsPage() {
     const wsUrl = `${wsBaseUrl}/ws/formularios/?access_token=${accessToken}`
     const socket = new WebSocket(wsUrl)
 
-    socket.onopen = () => {
-      console.log("FormsPage: WebSocket connection opened.");
-    }
+    
 
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        console.log("FormsPage: WebSocket message received:", data);
+        
 
         if (data.tipo === "lista_inicial" && data.conteudo && Array.isArray(data.conteudo.itens)) {
           setForms(data.conteudo.itens);
@@ -66,18 +64,13 @@ export default function FormsPage() {
           setForms(prevForms => prevForms.filter(f => f.id !== data.conteudo.id));
         }
       } catch (e) {
-        console.error("FormsPage: Error processing WebSocket message:", e)
+        
       }
     }
 
-    socket.onerror = (event) => {
-      console.error("FormsPage: WebSocket error:", event)
-      setIsLoading(false)
-    }
+    
 
-    socket.onclose = (ev: CloseEvent) => {
-      console.log("FormsPage: WebSocket disconnected.", ev)
-    }
+    
 
     return () => {
       socket.close()

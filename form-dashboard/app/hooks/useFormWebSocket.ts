@@ -23,16 +23,16 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
 
       if (response.ok) {
         // Tokens refreshed successfully, new access_token is in cookies
-        console.log("Session renewed successfully.");
+        
       } else if (response.status === 401) {
         toast.error("Sessão expirada. Por favor, faça login novamente.");
         router.push("/login");
       } else {
-        console.error("Failed to renew session:", response.statusText);
+        
         toast.error("Falha ao renovar a sessão.");
       }
     } catch (error) {
-      console.error("Error renewing session:", error);
+      
       toast.error("Erro de rede ao tentar renovar a sessão.");
     }
   };
@@ -45,7 +45,7 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
 
     const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL
     if (!wsBaseUrl) {
-      console.error("A variável de ambiente NEXT_PUBLIC_WS_URL não está definida.")
+
       setError("Configuração de ambiente inválida para a conexão em tempo real.")
       setIsLoading(false)
       return
@@ -56,14 +56,14 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     ws.current = socket
 
     socket.onopen = () => {
-      console.log("WebSocket connection established.");
+      
     }
 
     socket.onmessage = (event) => {
-      console.log("Debug [WebSocket]: Raw message received:", event.data);
+
       try {
         const data = JSON.parse(event.data);
-        console.log("Debug [WebSocket]: Parsed message data:", data);
+
 
         if (data.tipo === "usuarios_na_sala" || data.tipo === "usuario_desconectado") {
           setUsersInRoom(data.usuarios)
@@ -72,17 +72,17 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
           setError(null);
           setIsLoading(false);
         } else {
-          console.log("Debug [WebSocket]: Message not handled by 'setForm'", data);
+
         }
       } catch (e) {
-        console.error("Erro ao processar mensagem WebSocket:", e);
+
         setError("Falha ao processar dados recebidos.");
         setIsLoading(false);
       }
     };
 
     socket.onerror = (event) => {
-      console.error("WebSocket erro:", event)
+
       // Do not set a fatal error state here, as Strict Mode can cause transient errors.
       // The connection will close and the effect will retry.
       // setError("Erro de conexão em tempo real.") 
@@ -90,9 +90,7 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
       setIsLoading(false)
     }
     
-    socket.onclose = () => {
-      console.log("WebSocket connection closed.");
-    }
+    
 
     return () => {
         if (socket) {
@@ -133,7 +131,7 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN || (ws.current.url.includes(`access_token=${access_token}`) && !ws.current.url.includes(`access_token=${latestAccessToken}`))) {
       const wsBaseUrl = process.env.NEXT_PUBLIC_WS_URL;
       if (!wsBaseUrl) {
-        console.error("A variável de ambiente NEXT_PUBLIC_WS_URL não está definida.");
+  ;
         toast.error("Configuração de ambiente inválida para a conexão em tempo real.");
         return;
       }
@@ -146,18 +144,18 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
 
       // Add event listeners for the new socket
       newSocket.onopen = () => {
-        console.log("WebSocket connection re-established with new token.");
+        
         // Now send the message after connection is open
         if (newSocket.readyState === WebSocket.OPEN) {
           newSocket.send(JSON.stringify(message));
-          console.log("Mensagem enviada após reconexão:", message);
+          
         }
       };
       newSocket.onmessage = (event) => {
-        console.log("Debug [WebSocket]: Raw message received:", event.data);
+  
         try {
           const data = JSON.parse(event.data);
-          console.log("Debug [WebSocket]: Parsed message data:", data);
+  
 
           if (data.tipo === "usuarios_na_sala" || data.tipo === "usuario_desconectado") {
             setUsersInRoom(data.usuarios)
@@ -166,22 +164,20 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
             setError(null);
             setIsLoading(false);
           } else {
-            console.log("Debug [WebSocket]: Message not handled by 'setForm'", data);
+  
           }
         } catch (e) {
-          console.error("Erro ao processar mensagem WebSocket:", e);
+  
           setError("Falha ao processar dados recebidos.");
           setIsLoading(false);
         }
       };
       newSocket.onerror = (event) => {
-        console.error("WebSocket erro:", event);
+  ;
         toast.error("Ocorreu um erro na conexão em tempo real. Tentando reconectar...");
         setIsLoading(false);
       };
-      newSocket.onclose = () => {
-        console.log("WebSocket connection closed.");
-      };
+      
 
       // Return early, message will be sent in onopen of new socket
       return;
@@ -190,9 +186,9 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     // If WebSocket is already open and token is valid, send message directly
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message))
-      console.log("Mensagem enviada:", message)
+      
     } else {
-      console.error("WebSocket não está conectado. Não foi possível enviar a mensagem.")
+      
       toast.error("Não foi possível enviar a atualização. Verifique sua conexão.")
     }
   }

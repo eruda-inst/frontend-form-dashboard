@@ -238,7 +238,7 @@ export default function FormDetailsPage() {
         content: [
           {
             label: "Visualizar",
-            onClick: () => router.push(`/dashboard/forms/${id}/edit-questions`),
+            onClick: () => router.push(`/dashboard/forms/${id}/visualizar-respostas`),
           },
           {
             label: "Exportar",

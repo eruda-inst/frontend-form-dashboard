@@ -9,7 +9,6 @@ const refreshApiSchema = z.object({
 
 export async function POST() {
   const cookieStore = cookies();
-  console.log("Server received cookies:", cookieStore.getAll());
   const refreshTokenFromCookie = cookieStore.get("refresh_token")?.value;
 
   if (!refreshTokenFromCookie) {
@@ -40,7 +39,6 @@ export async function POST() {
     const parsedData = refreshApiSchema.safeParse(data);
 
     if (!parsedData.success) {
-      console.error("Erro de validação Zod:", parsedData.error.flatten());
       return NextResponse.json(
         { message: "Resposta inválida da API de autenticação." },
         { status: 500 }

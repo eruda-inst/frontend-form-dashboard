@@ -39,13 +39,7 @@ export async function POST(request: Request) {
     // 2. Valida os dados recebidos contra o schema.
     const parsedData = loginApiSchema.safeParse(data);
 
-    if (!parsedData.success) {
-      console.error("Erro de validação Zod:", parsedData.error.flatten());
-      return NextResponse.json(
-        { message: "Resposta inválida da API de autenticação." , response: data},
-        { status: 500 }
-      );
-    }
+    
 
     // Usa os dados validados e com tipo garantido.
     const { id, accessToken, refreshToken, firstName, lastName, email, image, gender, username: apiUsername } = parsedData.data;

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       })
       // Não precisamos nos preocupar com a resposta, o objetivo principal é deslogar.
     } catch (error) {
-      console.error("Erro ao tentar fazer logout no backend:", error)
+      
       // A falha na comunicação com o backend não deve impedir o logout do frontend.
     }
   }

@@ -89,7 +89,7 @@ export default function UsersPage() {
       setUsers(data)
     } catch (error: any) {
       if (error.name === "AbortError") {
-        console.log("Busca de usuários abortada.")
+        
         return // Não mostra toast se a requisição foi abortada
       }
       toast.error("Erro ao carregar usuários", {
@@ -208,7 +208,7 @@ export default function UsersPage() {
       <div className="flex flex-col auto-rows-min gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
         {users.map((user) =>{
           
-          console.log(user.ativo, user.nome)
+          
           if(!user.ativo){
             return null
           }

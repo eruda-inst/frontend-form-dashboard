@@ -75,7 +75,7 @@ export function DashboardHeader({}: DashboardHeaderProps) {
   const { usersInRoom } = useDashboard();
   const [allUsers, setAllUsers] = useState<User[]>([]);
 
-  console.log("usersInRoom:", usersInRoom);
+  
 
   useEffect(() => {
     const fetchAllUsers = async () => {
@@ -86,9 +86,9 @@ export function DashboardHeader({}: DashboardHeaderProps) {
         }
         const data = await response.json();
         setAllUsers(data);
-        console.log("allUsers fetched:", data);
+        
       } catch (error) {
-        console.error("Error fetching all users:", error);
+        
       }
     };
 
@@ -98,14 +98,14 @@ export function DashboardHeader({}: DashboardHeaderProps) {
   const usersWithImages = usersInRoom.map(userInRoom => {
     const foundUser = allUsers.find(user => user.username === userInRoom.username);
     const image = foundUser ? foundUser.imagem : "/default-avatar.png";
-    console.log(`User ${userInRoom.username}: image = ${image}, foundUser =`, foundUser);
+    
     return {
       ...userInRoom,
       image: image
     };
   });
 
-  console.log("usersWithImages:", usersWithImages);
+  
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 justify-between pr-3">

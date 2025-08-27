@@ -42,7 +42,7 @@ const fetchFormName = async (formId: string) => {
     const data = await res.json()
     return data.nome // Assumes the form object has a 'nome' property
   } catch (error) {
-    console.error("Failed to fetch form name:", error)
+    
     return null
   }
 }

@@ -74,7 +74,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
 
     return response
   } catch (error) {
-    console.error("Erro no middleware:", error)
+    
     // Em caso de erro de rede (ex: API fora do ar), não bloqueia o usuário.
     // A página pode tentar renderizar e lidar com o erro no lado do cliente.
     return NextResponse.next()
