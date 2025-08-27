@@ -172,6 +172,16 @@ export default function FormDetailsPage() {
     };
   }, [usersInRoom, setUsersInRoom]);
 
+  useEffect(() => {
+    if (form) {
+      const breadcrumbs = [
+        { title: "Formulários", url: "/dashboard/forms" },
+        { title: form.titulo },
+      ];
+      setBreadcrumbs(breadcrumbs);
+    }
+  }, [form, setBreadcrumbs]);
+
   const handleUpdateQuestion = (questionId: string, newText: string) => {
     if (form) {
       const message = {
@@ -206,17 +216,7 @@ export default function FormDetailsPage() {
     }, 500);
   }
 
-  useEffect(() => {
-    if (form) {
-      setBreadcrumbs([
-        { title: "Formulários", url: "/dashboard" },
-        { title: form.titulo },
-      ])
-    }
-    return () => {
-      setBreadcrumbs([{ title: "Formulários" }])
-    }
-  }, [form, setBreadcrumbs])
+  
 
   useEffect(() => {
     const menubarData: MenubarMenuData[] = [

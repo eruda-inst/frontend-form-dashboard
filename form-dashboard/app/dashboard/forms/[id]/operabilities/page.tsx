@@ -46,7 +46,7 @@ export default function OperabilitiesPage() {
         }
 
         const data = await res.json()
-        setIsPublished(data.publicado)
+        setIsPublished(data.recebendo_respostas)
       } catch (error: any) {
         toast.error("Erro ao buscar status do formulário", {
           description: error.message,

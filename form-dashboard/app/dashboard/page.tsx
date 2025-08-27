@@ -9,10 +9,7 @@ import FormsPage from "@/components/pages/forms-page/forms-page"
 export default function Page() {
   const { activeTitle, setBreadcrumbs } = useNavigation()
 
-  useEffect(() => {
-    // Define o breadcrumb para a seção ativa.
-    setBreadcrumbs([{ title: activeTitle }])
-  }, [activeTitle, setBreadcrumbs])
+  
 
   switch (activeTitle) {
     case "Dashboard":

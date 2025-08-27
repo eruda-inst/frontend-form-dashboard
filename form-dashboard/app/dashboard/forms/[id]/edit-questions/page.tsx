@@ -201,18 +201,7 @@ export default function FormDetailsPage() {
     }, 500);
   }
 
-  useEffect(() => {
-    if (form) {
-      setBreadcrumbs([
-        { title: "Formulários", url: "/dashboard" },
-        { title: form.titulo, url: `/dashboard/forms/${id}` },
-        { title: "Editar questões" },
-      ])
-    }
-    return () => {
-      setBreadcrumbs([{ title: "Formulários" }])
-    }
-  }, [form, setBreadcrumbs, id])
+  
 
   if (isLoading) {
     return (
