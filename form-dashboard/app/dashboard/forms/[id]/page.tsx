@@ -1,16 +1,6 @@
 "use client"
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { ChartAreaInteractive } from "@/components/charts/answers-chart"
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter }
@@ -282,6 +272,7 @@ export default function FormDetailsPage() {
             </p>
         </div>
       </div>
+        <ChartAreaInteractive/>
     </>
   )
 }
