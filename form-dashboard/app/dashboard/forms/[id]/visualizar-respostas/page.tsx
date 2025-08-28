@@ -44,7 +44,7 @@ const getAnswerValue = (item?: RespostaItem, pergunta?: Pergunta) => {
     }
   }
 
-  return item.valor_texto || item.valor_numero?.toString() || item.valor_opcao_texto || "N/A";
+  return item.valor_texto || item.valor_numero?.toString() || item.valor_opcao?.texto || item.valor_opcao_texto || "N/A";
 };
 
 
@@ -58,8 +58,8 @@ export default function FormDetailsPage() {
   const id = params.id as string
   const access_token = Cookies.get("access_token") || null
 
-  const { form, isLoading, error, usersInRoom } = useFormWebSocket(id, access_token)
-  const { responses, isLoading: isLoadingResponses, error: responsesError } = useResponsesWebSocket(id, access_token);
+  const { form, isLoading, error } = useFormWebSocket(id, access_token)
+  const { responses, usersInRoom, isLoading: isLoadingResponses, error: responsesError } = useResponsesWebSocket(id, access_token);
   console.log("Responses in page.tsx:", responses);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -192,15 +192,26 @@ export default function FormDetailsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {selectedResponse?.itens.map((item) => {
-              const pergunta = form?.perguntas.find(p => p.id === item.pergunta_id);
-              return (
-                <div key={item.id} className="grid items-center gap-2">
-                  <h4 className="col-span-1 font-bold">{pergunta?.texto || "Pergunta Desconhecida"}:</h4>
-                  <div className="col-span-3">{getAnswerValue(item, pergunta)}</div>
-                </div>
-              );
-            })}
+            {(() => {
+              if (!selectedResponse) return null;
+
+              const itemsByQuestion = selectedResponse.itens.reduce((acc, item) => {
+                acc[item.pergunta_id] = acc[item.pergunta_id] || [];
+                acc[item.pergunta_id].push(item);
+                return acc;
+              }, {} as Record<string, RespostaItem[]>);
+
+              return Object.entries(itemsByQuestion).map(([perguntaId, items]) => {
+                const pergunta = form?.perguntas.find(p => p.id === perguntaId);
+                const answerValues = items.map(item => getAnswerValue(item, pergunta)).join(', ');
+                return (
+                  <div key={perguntaId} className="grid grid-cols-4 items-center gap-4">
+                    <h4 className="font-bold">{pergunta?.texto || "Pergunta Desconhecida"}:</h4>
+                    <div className="col-span-3">{answerValues}</div>
+                  </div>
+                );
+              });
+            })()}
           </div>
           <DialogFooter>
             <Button onClick={() => setIsDialogOpen(false)}>Fechar</Button>

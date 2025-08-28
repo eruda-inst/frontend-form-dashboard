@@ -1,6 +1,11 @@
 "use client"
 
 import { ChartAreaInteractive } from "@/components/charts/answers-chart"
+import { CaixaSelecaoChart } from "@/components/charts/caixa-selecao-chart"
+import { DataChart } from "@/components/charts/data-chart"
+import { MultiplaEscolhaChart } from "@/components/charts/multipla-escolha-chart"
+import { NpsChart } from "@/components/charts/nps-chart"
+import { NumeroChart } from "@/components/charts/numero-chart"
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter }
@@ -153,14 +158,9 @@ export default function FormDetailsPage() {
   const access_token = Cookies.get("access_token") || null
 
 
-  const { form, isLoading, error, sendMessage, usersInRoom } = useFormWebSocket(id, access_token)
+  const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token);
 
-  useEffect(() => {
-    setUsersInRoom(usersInRoom);
-    return () => {
-      setUsersInRoom([]); // Clear usersInRoom when component unmounts
-    };
-  }, [usersInRoom, setUsersInRoom]);
+ 
 
   useEffect(() => {
     if (form) {
@@ -273,6 +273,13 @@ export default function FormDetailsPage() {
         </div>
       </div>
         <ChartAreaInteractive formId={id}/>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-8">
+          {form.perguntas.some(p => p.tipo === 'nps') && <NpsChart formId={id} />}
+          {form.perguntas.some(p => p.tipo === 'multipla_escolha') && <MultiplaEscolhaChart formId={id} />}
+          {form.perguntas.some(p => p.tipo === 'numero') && <NumeroChart formId={id} />}
+          {form.perguntas.some(p => p.tipo === 'data') && <DataChart formId={id} />}
+          {form.perguntas.some(p => p.tipo === 'caixa_selecao') && <CaixaSelecaoChart formId={id} />}
+        </div>
     </>
   )
 }

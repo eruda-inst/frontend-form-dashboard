@@ -31,7 +31,7 @@ import { Resposta } from "@/app/types/responses"
 const chartConfig = {
   respostas: {
     label: "Respostas",
-    color: "hsl(var(--chart-1))",
+    color: "rgb(59 130 246)",
   },
 } satisfies ChartConfig
 
@@ -46,25 +46,42 @@ export function ChartAreaInteractive({ formId }: ChartAreaInteractiveProps) {
   const { responses, isLoading, error } = useResponsesWebSocket(formId, accessToken)
 
   React.useEffect(() => {
-    const processData = (responses: Resposta[]) => {
+    const processData = (responses: Resposta[], timeRange: string) => {
       const countsByDay: { [key: string]: number } = {}
       responses.forEach((response) => {
         const date = new Date(response.criado_em).toISOString().split("T")[0]
         countsByDay[date] = (countsByDay[date] || 0) + 1
       })
 
-      const data = Object.keys(countsByDay).map((date) => ({
+      const allDates: string[] = [];
+      const now = new Date();
+      let daysToGenerate = 90; // Default to 90 days
+
+      if (timeRange === "30d") {
+        daysToGenerate = 30;
+      } else if (timeRange === "7d") {
+        daysToGenerate = 7;
+      }
+
+      for (let i = 0; i < daysToGenerate; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        allDates.push(d.toISOString().split("T")[0]);
+      }
+
+      const data = allDates.sort().map((date) => ({
         date,
-        respostas: countsByDay[date],
-      }))
-      return data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        respostas: countsByDay[date] || 0, // Use 0 if no responses for the day
+      }));
+
+      return data;
     }
 
     if (responses) {
-      const processedData = processData(responses)
+      const processedData = processData(responses, timeRange)
       setChartData(processedData)
     }
-  }, [responses])
+  }, [responses, timeRange])
 
   const filteredData = React.useMemo(() => {
     const now = new Date()

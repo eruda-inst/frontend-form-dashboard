@@ -5,11 +5,9 @@ import Cookies from "js-cookie"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import type { Form } from "@/app/types/forms"
-import { User } from "../types/user"
 
 export function useFormWebSocket(formId: string | null, access_token: string | null) {
   const [form, setForm] = useState<Form | null>(null)
-  const [usersInRoom, setUsersInRoom] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const ws = useRef<WebSocket | null>(null)
@@ -65,9 +63,7 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
         const data = JSON.parse(event.data);
 
 
-        if (data.tipo === "usuarios_na_sala" || data.tipo === "usuario_desconectado") {
-          setUsersInRoom(data.usuarios)
-        } else if (data.tipo && data.conteudo && data.conteudo.id) {
+        if (data.tipo && data.conteudo && data.conteudo.id) {
           setForm(data.conteudo);
           setError(null);
           setIsLoading(false);
@@ -157,9 +153,7 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
           const data = JSON.parse(event.data);
   
 
-          if (data.tipo === "usuarios_na_sala" || data.tipo === "usuario_desconectado") {
-            setUsersInRoom(data.usuarios)
-          } else if (data.tipo && data.conteudo && data.conteudo.id) {
+          if (data.tipo && data.conteudo && data.conteudo.id) {
             setForm(data.conteudo);
             setError(null);
             setIsLoading(false);
@@ -193,5 +187,5 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     }
   }
 
-  return { form, usersInRoom, isLoading, error, sendMessage }
+  return { form, isLoading, error, sendMessage }
 }

@@ -158,14 +158,9 @@ export default function FormDetailsPage() {
   const access_token = Cookies.get("access_token") || null
 
 
-  const { form, isLoading, error, sendMessage, usersInRoom } = useFormWebSocket(id, access_token)
+  const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token)
 
-  useEffect(() => {
-    setUsersInRoom(usersInRoom);
-    return () => {
-      setUsersInRoom([]); // Clear usersInRoom when component unmounts
-    };
-  }, [usersInRoom, setUsersInRoom]);
+
 
   const handleUpdateQuestion = (questionId: string, newText: string) => {
     if (form) {
