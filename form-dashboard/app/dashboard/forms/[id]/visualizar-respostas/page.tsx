@@ -52,6 +52,7 @@ export default function FormDetailsPage() {
 
   const { form, isLoading, error, usersInRoom } = useFormWebSocket(id, access_token)
   const { responses, isLoading: isLoadingResponses, error: responsesError } = useResponsesWebSocket(id, access_token);
+  console.log("Responses in page.tsx:", responses);
 
 
   useEffect(() => {

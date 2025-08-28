@@ -272,7 +272,7 @@ export default function FormDetailsPage() {
             </p>
         </div>
       </div>
-        <ChartAreaInteractive/>
+        <ChartAreaInteractive formId={id}/>
     </>
   )
 }
