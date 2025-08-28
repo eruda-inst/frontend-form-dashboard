@@ -17,7 +17,9 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
     const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL}/ws/respostas/formulario/${formId}?access_token=${accessToken}`;
     ws.current = new WebSocket(wsUrl);
 
-    
+    ws.current.onopen = () => {
+        setIsLoading(false);
+    }
 
     ws.current.onmessage = (event) => {
       try {
@@ -26,12 +28,9 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
           setResponses(data.dados);
         } else if (data.tipo === 'nova_resposta') {
           setResponses(prevResponses => [data.dados, ...prevResponses]);
-        } else {
-          
-        }
+        } 
       } catch (e) {
         setError("Failed to parse response data from WebSocket.");
-        
       } finally {
         if (isLoading) {
           setIsLoading(false);
@@ -41,18 +40,21 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
 
     ws.current.onerror = (err) => {
       setError("WebSocket error for responses.");
-      
       setIsLoading(false);
     };
 
-    
+    ws.current.onclose = (event) => {
+        if (event.code !== 1000) { // 1000 is normal closure
+            setError("WebSocket closed unexpectedly");
+        }
+    };
 
     return () => {
       if (ws.current) {
         ws.current.close();
       }
     };
-  }, [formId, accessToken]);
+  }, [formId, accessToken, isLoading]);
 
   return { responses, isLoading, error };
 };
