@@ -23,6 +23,7 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
     }
 
     ws.current.onmessage = (event) => {
+      
       console.log("Raw WebSocket message for responses:", event.data);
       try {
         const data = JSON.parse(event.data);
@@ -31,7 +32,7 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
           setResponses(data.dados);
           console.log("Responses after bootstrap:", data.dados);
           setIsLoading(false); // Set loading to false only when response data is received
-        } else if (data.tipo === 'nova_resposta') {
+        } else if (data.tipo === 'nova_resposta' || data.tipo === 'resposta_criada') {
           setResponses(prevResponses => {
             const newResponses = [data.dados, ...prevResponses];
             console.log("Responses after new response:", newResponses);

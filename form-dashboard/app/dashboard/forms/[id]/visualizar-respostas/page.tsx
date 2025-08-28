@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation"
 import Cookies from "js-cookie"
@@ -18,6 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import type { Resposta, RespostaItem } from "@/app/types/responses";
 import type { Pergunta } from "@/app/types/forms";
 import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket";
@@ -54,6 +62,13 @@ export default function FormDetailsPage() {
   const { responses, isLoading: isLoadingResponses, error: responsesError } = useResponsesWebSocket(id, access_token);
   console.log("Responses in page.tsx:", responses);
 
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedResponse, setSelectedResponse] = useState<Resposta | null>(null);
+
+  const handleRowClick = (response: Resposta) => {
+    setSelectedResponse(response);
+    setIsDialogOpen(true);
+  };
 
   useEffect(() => {
     setUsersInRoom(usersInRoom);
@@ -138,7 +153,7 @@ export default function FormDetailsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h2 className="text-2xl font-bold tracking-tight mb-4">Respostas</h2>
         {isLoadingResponses ? (
           <div className="flex justify-center items-center h-40">
@@ -150,34 +165,48 @@ export default function FormDetailsPage() {
         ) : responses.length === 0 ? (
           <p>Nenhuma resposta foi encontrada para este formulário.</p>
         ) : (
-          <Table>
+          <Table className="w-full">
             <TableCaption>Total de {responses.length} respostas.</TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead>Data de Envio</TableHead>
-                {form.perguntas.map((pergunta) => (
-                  <TableHead key={pergunta.id}>{pergunta.titulo}</TableHead>
-                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {responses.map((response) => (
-                <TableRow key={response.id}>
+                <TableRow key={response.id} onClick={() => handleRowClick(response)} className="cursor-pointer hover:bg-muted/50">
                   <TableCell>{new Date(response.criado_em).toLocaleString("pt-BR")}</TableCell>
-                  {form.perguntas.map((pergunta) => {
-                    const item = response.itens.find(it => it.pergunta_id === pergunta.id);
-                    return (
-                      <TableCell key={pergunta.id}>
-                        {getAnswerValue(item, pergunta)}
-                      </TableCell>
-                    );
-                  })}
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Resposta</DialogTitle>
+            <DialogDescription>
+              Resposta enviada em: {selectedResponse?.criado_em ? new Date(selectedResponse.criado_em).toLocaleString("pt-BR") : "N/A"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {selectedResponse?.itens.map((item) => {
+              const pergunta = form?.perguntas.find(p => p.id === item.pergunta_id);
+              return (
+                <div key={item.id} className="grid items-center gap-2">
+                  <h4 className="col-span-1 font-bold">{pergunta?.texto || "Pergunta Desconhecida"}:</h4>
+                  <div className="col-span-3">{getAnswerValue(item, pergunta)}</div>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsDialogOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
