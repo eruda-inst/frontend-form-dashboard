@@ -8,7 +8,7 @@ const refreshApiSchema = z.object({
 });
 
 export async function POST() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const refreshTokenFromCookie = cookieStore.get("refresh_token")?.value;
 
   if (!refreshTokenFromCookie) {

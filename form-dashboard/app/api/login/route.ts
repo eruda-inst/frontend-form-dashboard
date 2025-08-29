@@ -39,7 +39,12 @@ export async function POST(request: Request) {
     // 2. Valida os dados recebidos contra o schema.
     const parsedData = loginApiSchema.safeParse(data);
 
-    
+    if (!parsedData.success) {
+      return NextResponse.json(
+        { message: "Dados de login inválidos." },
+        { status: 400 }
+      );
+    }
 
     // Usa os dados validados e com tipo garantido.
     const { id, accessToken, refreshToken, firstName, lastName, email, image, gender, username: apiUsername } = parsedData.data;
