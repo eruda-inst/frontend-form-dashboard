@@ -164,7 +164,7 @@ export default function FormDetailsPage() {
         </div>
       </div>
         <ChartAreaInteractive formId={id}/>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {npsData && npsData.map(data => <NpsChart key={data.questionId} data={data} />)}
           {form.perguntas.some(p => p.tipo === 'multipla_escolha') && <MultiplaEscolhaChart formId={id} />}
           {form.perguntas.some(p => p.tipo === 'numero') && <NumeroChart formId={id} />}
