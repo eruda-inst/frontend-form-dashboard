@@ -1,8 +1,13 @@
 "use client"
 
-import { TrendingUp } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import Cookies from "js-cookie"
+import { Loader2 } from "lucide-react"
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
 
+import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
+import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket"
+import { Pergunta } from "@/app/types/forms"
 import {
   Card,
   CardContent,
@@ -17,33 +22,118 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
-export const description = "A radar chart"
+export function MultiplaEscolhaChart({ formId }: { formId: string }) {
+  const accessToken = Cookies.get("access_token") || null
+  const { form } = useFormWebSocket(formId, accessToken)
+  const { responses, isLoading } = useResponsesWebSocket(formId, accessToken)
 
-const chartData = [
-  { month: "January", desktop: 186 },
-  { month: "February", desktop: 305 },
-  { month: "March", desktop: 237 },
-  { month: "April", desktop: 273 },
-  { month: "May", desktop: 209 },
-  { month: "June", desktop: 214 },
-]
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
+    null
+  )
 
-const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "var(--chart-1)",
-  },
-} satisfies ChartConfig
+  const multiChoiceQuestions = useMemo(() => {
+    return form?.perguntas.filter((p) => p.tipo === "multipla_escolha") || []
+  }, [form])
 
-export function MultiplaEscolhaChart() {
+  useEffect(() => {
+    if (multiChoiceQuestions.length > 0 && !selectedQuestionId) {
+      setSelectedQuestionId(multiChoiceQuestions[0].id)
+    }
+  }, [multiChoiceQuestions, selectedQuestionId])
+
+  const selectedQuestion = useMemo(() => {
+    return multiChoiceQuestions.find((q) => q.id === selectedQuestionId)
+  }, [multiChoiceQuestions, selectedQuestionId])
+
+  const chartData = useMemo(() => {
+    if (!selectedQuestion || !responses) {
+      return []
+    }
+
+    if (selectedQuestion.tipo !== "multipla_escolha" || !selectedQuestion.opcoes) {
+      return []
+    }
+
+    const optionCounts = new Map<string, number>()
+    selectedQuestion.opcoes.forEach((opt) => {
+      optionCounts.set(opt.texto, 0)
+    })
+
+    responses.forEach((response) => {
+      response.itens.forEach((item) => {
+        if (item.pergunta_id === selectedQuestionId && item.valor_opcao) {
+          const count = optionCounts.get(item.valor_opcao.texto)
+          if (typeof count === "number") {
+            optionCounts.set(item.valor_opcao.texto, count + 1)
+          }
+        }
+      })
+    })
+
+    return Array.from(optionCounts.entries()).map(([option, count]) => ({
+      option,
+      count,
+    }))
+  }, [responses, selectedQuestion, selectedQuestionId])
+
+  const chartConfig: ChartConfig = useMemo(() => {
+    return {
+      count: {
+        label: "Votos",
+        color: "var(--chart-1)",
+      },
+    }
+  }, [])
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Respostas de Múltipla Escolha</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center min-h-[250px]">
+          <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+          <span>Carregando respostas...</span>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (multiChoiceQuestions.length === 0) {
+    return null // Or a message indicating no multiple choice questions
+  }
+
   return (
     <Card>
       <CardHeader className="items-center pb-4">
-        <CardTitle>Radar Chart</CardTitle>
-        <CardDescription>
-          Showing total visitors for the last 6 months
-        </CardDescription>
+        <CardTitle>{selectedQuestion?.texto}</CardTitle>
+        {multiChoiceQuestions.length > 1 ? (
+          <Select
+            value={selectedQuestionId || ""}
+            onValueChange={setSelectedQuestionId}
+          >
+            <SelectTrigger className="w-[280px] mx-auto">
+              <SelectValue placeholder="Selecione uma pergunta" />
+            </SelectTrigger>
+            <SelectContent>
+              {multiChoiceQuestions.map((q) => (
+                <SelectItem key={q.id} value={q.id}>
+                  {q.texto}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <CardDescription>Respostas de múltipla escolha</CardDescription>
+        )}
       </CardHeader>
       <CardContent className="pb-0">
         <ChartContainer
@@ -51,23 +141,23 @@ export function MultiplaEscolhaChart() {
           className="mx-auto aspect-square max-h-[250px]"
         >
           <RadarChart data={chartData}>
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <PolarAngleAxis dataKey="month" />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent />}
+            />
+            <PolarAngleAxis dataKey="option" />
             <PolarGrid />
             <Radar
-              dataKey="desktop"
-              fill="var(--color-desktop)"
+              dataKey="count"
+              fill="var(--color-count)"
               fillOpacity={0.6}
             />
           </RadarChart>
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 leading-none font-medium">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="text-muted-foreground flex items-center gap-2 leading-none">
-          January - June 2024
+        <div className="text-muted-foreground">
+          Exibindo o total de votos para cada opção.
         </div>
       </CardFooter>
     </Card>
