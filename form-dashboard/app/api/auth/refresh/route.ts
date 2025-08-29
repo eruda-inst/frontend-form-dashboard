@@ -9,7 +9,7 @@ const refreshApiSchema = z.object({
 
 export async function POST() {
   const cookieStore = cookies();
-  const refreshTokenFromCookie = cookieStore.get("refresh_token")?.value;
+  const refreshTokenFromCookie = (await cookieStore).get("refresh_token")?.value;
 
   if (!refreshTokenFromCookie) {
     return NextResponse.json(
@@ -52,8 +52,8 @@ export async function POST() {
       path: '/',
     };
 
-    cookieStore.set("access_token", accessToken, { ...cookieOptions, maxAge: 60 * 15, httpOnly: false });
-    cookieStore.set("refresh_token", refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: true });
+    (await cookieStore).set("access_token", accessToken, { ...cookieOptions, maxAge: 60 * 15, httpOnly: false });
+    (await cookieStore).set("refresh_token", refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: true });
 
     return NextResponse.json({ success: true });
 
