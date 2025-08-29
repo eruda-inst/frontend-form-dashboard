@@ -7,16 +7,14 @@ import { MultiplaEscolhaChart } from "@/components/charts/multipla-escolha-chart
 import { NpsChart } from "@/components/charts/nps-chart"
 import { NumeroChart } from "@/components/charts/numero-chart"
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useRouter }
 from "next/navigation"
 import Cookies from "js-cookie"
 import type { Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
-import { AddQuestionDialog } from "@/components/add-question-dialog"
+import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket"
 import { useNavigation } from "@/components/navigation-provider"
-import { useDashboard } from "@/components/dashboard-context"
-import { DashboardHeader } from "@/components/dashboard-header"
 import { useMenubar } from "@/components/menubar-context";
 import { MenubarMenuData } from "@/app/types/menubar";
 import {
@@ -31,182 +29,33 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Button } from "@/components/ui/button"
-import { Loader2, Trash } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
-// Componente auxiliar para renderizar cada tipo de pergunta
-const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
-  switch (pergunta.tipo) {
-    case "texto_simples":
-      return <Input placeholder="Resposta curta" disabled />
-    case "texto_longo":
-      return <Textarea placeholder="Resposta longa" disabled />
-    case "data":
-      return <Input type="date" disabled />
-    case "numero":
-    case "nps":
-      return <Input type="number" placeholder="0" disabled />
-    case "multipla_escolha":
-      if ("opcoes" in pergunta) {
-        return (
-          <RadioGroup disabled>
-            {pergunta.opcoes.map((opcao, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value={opcao.texto}
-                  id={`${pergunta.id}-${index}`}
-                />
-                <Label htmlFor={`${pergunta.id}-${index}`} className="font-normal">
-                  {opcao.texto}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        )
-      }
-      return null
-    case "caixa_selecao":
-      if ("opcoes" in pergunta) {
-        return (
-          <div className="space-y-2">
-            {pergunta.opcoes.map((opcao, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <Checkbox id={`${pergunta.id}-${index}`} disabled />
-                <Label htmlFor={`${pergunta.id}-${index}`} className="font-normal">
-                  {opcao.texto}
-                </Label>
-              </div>
-            ))}
-          </div>
-        )
-      }
-      return null
-    default:
-      return (
-        <p className="text-sm text-muted-foreground">
-          Tipo de pergunta não suportado.
-        </p>
-      )
-  }
-}
-
-const EditableQuestion = ({ pergunta, index, onUpdate }: {
-  pergunta: Pergunta;
-  index: number;
-  onUpdate: (id: string, texto: string) => void;
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [text, setText] = useState(pergunta.texto);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-    }
-  }, [isEditing]);
-
-  useEffect(() => {
-    setText(pergunta.texto);
-  }, [pergunta.texto]);
-
-  const handleUpdate = () => {
-    setIsEditing(false);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newText = e.target.value;
-    setText(newText);
-    if (newText.trim() !== pergunta.texto) {
-      onUpdate(pergunta.id, newText.trim());
-    }
-  };
-
-  return (
-    <div onClick={() => setIsEditing(true)} className="cursor-pointer">
-      {isEditing ? (
-        <Input
-          ref={inputRef}
-          type="text"
-          value={text}
-          onChange={handleChange}
-          onBlur={handleUpdate}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleUpdate();
-            }
-          }}
-          className="text-lg font-medium"
-        />
-      ) : (
-        <CardTitle className="text-lg font-medium break-words">
-          {index + 1}. {pergunta.texto}
-        </CardTitle>
-      )}
-    </div>
-  );
-};
 
 export default function FormDetailsPage() {
   const params = useParams()
   const router = useRouter();
   const { setBreadcrumbs } = useNavigation()
   const { setMenubarData } = useMenubar();
-  const { setUsersInRoom } = useDashboard();
-  const [pendingDeletion, setPendingDeletion] = useState<string[]>([]);
 
   const id = params.id as string
   const access_token = Cookies.get("access_token") || null
 
 
-  const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token);
+  const { form, isLoading, error } = useFormWebSocket(id, access_token);
+  const { responses } = useResponsesWebSocket(id, access_token);
 
  
 
   useEffect(() => {
     if (form) {
       const breadcrumbs = [
-        { title: "Formulários", url: "/dashboard/forms" },
+        { title: "Formulários", url: "/dashboard" },
         { title: form.titulo },
       ];
       setBreadcrumbs(breadcrumbs);
     }
   }, [form, setBreadcrumbs]);
-
-  const handleUpdateQuestion = (questionId: string, newText: string) => {
-    if (form) {
-      const message = {
-        tipo: "update_formulario",
-        conteudo: {
-          perguntas_editadas: [
-            {
-              id: questionId,
-              texto: newText,
-              ordem_exibicao: form.perguntas.find(p => p.id === questionId)?.ordem_exibicao ?? 0
-            },
-          ],
-        },
-      };
-      sendMessage(message);
-    }
-  };
-
-  const handleDeleteQuestion = (questionId: string) => {
-    if (!form) return;
-
-    setPendingDeletion(prev => [...prev, questionId]);
-
-    setTimeout(() => {
-      const message = {
-        "tipo": "update_formulario",
-        "conteudo": {
-          "perguntas_removidas": [questionId]
-        }
-      };
-      sendMessage(message);
-    }, 500);
-  }
-
-  
 
   useEffect(() => {
     const menubarData: MenubarMenuData[] = [
@@ -244,6 +93,48 @@ export default function FormDetailsPage() {
     };
   }, [id, router, setMenubarData]);
 
+  const npsData = useMemo(() => {
+    if (!form || !responses) {
+      return [];
+    }
+
+    const npsPerguntas = form.perguntas.filter(p => p.tipo === 'nps');
+    if (npsPerguntas.length === 0) {
+      return [];
+    }
+
+    return npsPerguntas.map(pergunta => {
+      const scoreCounts = Array(11).fill(0).map((_, i) => ({ score: i, count: 0 }));
+      let totalResponses = 0;
+
+      responses.forEach(response => {
+        const npsItem = response.itens.find(item => item.pergunta_id === pergunta.id);
+        if (npsItem && typeof npsItem.valor_numero === 'number') {
+          const score = npsItem.valor_numero;
+          if (score >= 0 && score <= 10) {
+            scoreCounts[score].count++;
+            totalResponses++;
+          }
+        }
+      });
+
+      // Still calculate the overall NPS score for the header
+      const detractors = scoreCounts.slice(0, 7).reduce((sum, item) => sum + item.count, 0);
+      const promoters = scoreCounts.slice(9, 11).reduce((sum, item) => sum + item.count, 0);
+      const promoterPercentage = totalResponses > 0 ? (promoters / totalResponses) * 100 : 0;
+      const detractorPercentage = totalResponses > 0 ? (detractors / totalResponses) * 100 : 0;
+      const npsScore = Math.round(promoterPercentage - detractorPercentage);
+
+      return {
+        questionId: pergunta.id,
+        questionText: pergunta.texto,
+        score: npsScore,
+        total: totalResponses,
+        scoreCounts: scoreCounts,
+      };
+    });
+  }, [form, responses]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -274,7 +165,7 @@ export default function FormDetailsPage() {
       </div>
         <ChartAreaInteractive formId={id}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-8">
-          {form.perguntas.some(p => p.tipo === 'nps') && <NpsChart formId={id} />}
+          {npsData && npsData.map(data => <NpsChart key={data.questionId} data={data} />)}
           {form.perguntas.some(p => p.tipo === 'multipla_escolha') && <MultiplaEscolhaChart formId={id} />}
           {form.perguntas.some(p => p.tipo === 'numero') && <NumeroChart formId={id} />}
           {form.perguntas.some(p => p.tipo === 'data') && <DataChart formId={id} />}

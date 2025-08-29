@@ -46,41 +46,41 @@ export function ChartAreaInteractive({ formId }: ChartAreaInteractiveProps) {
   const { responses, isLoading, error } = useResponsesWebSocket(formId, accessToken)
 
   React.useEffect(() => {
-    const processData = (responses: Resposta[], timeRange: string) => {
+    const processData = (responses: Resposta[] | null, timeRange: string) => {
       const countsByDay: { [key: string]: number } = {}
-      responses.forEach((response) => {
-        const date = new Date(response.criado_em).toISOString().split("T")[0]
-        countsByDay[date] = (countsByDay[date] || 0) + 1
-      })
+      if (responses) {
+        responses.forEach((response) => {
+          const date = new Date(response.criado_em).toISOString().split("T")[0]
+          countsByDay[date] = (countsByDay[date] || 0) + 1
+        })
+      }
 
-      const allDates: string[] = [];
-      const now = new Date();
-      let daysToGenerate = 90; // Default to 90 days
+      const allDates: string[] = []
+      const now = new Date()
+      let daysToGenerate = 90 // Default to 90 days
 
       if (timeRange === "30d") {
-        daysToGenerate = 30;
+        daysToGenerate = 30
       } else if (timeRange === "7d") {
-        daysToGenerate = 7;
+        daysToGenerate = 7
       }
 
       for (let i = 0; i < daysToGenerate; i++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        allDates.push(d.toISOString().split("T")[0]);
+        const d = new Date(now)
+        d.setDate(now.getDate() - i)
+        allDates.push(d.toISOString().split("T")[0])
       }
 
       const data = allDates.sort().map((date) => ({
         date,
         respostas: countsByDay[date] || 0, // Use 0 if no responses for the day
-      }));
+      }))
 
-      return data;
+      return data
     }
 
-    if (responses) {
-      const processedData = processData(responses, timeRange)
-      setChartData(processedData)
-    }
+    const processedData = processData(responses, timeRange)
+    setChartData(processedData)
   }, [responses, timeRange])
 
   const filteredData = React.useMemo(() => {
@@ -93,51 +93,47 @@ export function ChartAreaInteractive({ formId }: ChartAreaInteractiveProps) {
     }
     const startDate = new Date(now)
     startDate.setDate(startDate.getDate() - daysToSubtract)
-    
+
     return chartData.filter((item) => new Date(item.date) >= startDate)
   }, [chartData, timeRange])
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-full">
-        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-        <span>Carregando dados do gráfico...</span>
-      </div>
-    )
-  }
-
   if (error) {
-    return <div className="p-4 text-center text-red-500">Erro ao carregar dados: {error}</div>
+    // TODO: Handle error state better, maybe show a toast notification
+    console.error("Error fetching chart data:", error)
   }
 
   return (
     <Card>
-      <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+      <CardHeader className="flex items-center gap-2 space-y-0 border-b  sm:flex-row">
         <div className="grid flex-1 gap-1">
           <CardTitle>Respostas por Dia</CardTitle>
           <CardDescription>
-            Mostrando o total de respostas nos últimos {timeRange === "90d" ? "90" : timeRange === "30d" ? "30" : "7"} dias
+            Mostrando o total de respostas nos últimos{" "}
+            {timeRange === "90d" ? "90" : timeRange === "30d" ? "30" : "7"} dias
           </CardDescription>
         </div>
-        <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger
-            className="w-[160px] rounded-lg sm:ml-auto"
-            aria-label="Select a value"
-          >
-            <SelectValue placeholder="Selecione o período" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="90d" className="rounded-lg">
-              Últimos 90 dias
-            </SelectItem>
-            <SelectItem value="30d" className="rounded-lg">
-              Últimos 30 dias
-            </SelectItem>
-            <SelectItem value="7d" className="rounded-lg">
-              Últimos 7 dias
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger
+              className="w-[160px] rounded-lg sm:ml-auto"
+              aria-label="Select a value"
+            >
+              <SelectValue placeholder="Selecione o período" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="90d" className="rounded-lg">
+                Últimos 90 dias
+              </SelectItem>
+              <SelectItem value="30d" className="rounded-lg">
+                Últimos 30 dias
+              </SelectItem>
+              <SelectItem value="7d" className="rounded-lg">
+                Últimos 7 dias
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer
@@ -178,7 +174,9 @@ export function ChartAreaInteractive({ formId }: ChartAreaInteractiveProps) {
               cursor={false}
               content={
                 <ChartTooltipContent
-                  labelFormatter={(value) => new Date(value).toLocaleDateString("pt-BR")}
+                  labelFormatter={(value) =>
+                    new Date(value).toLocaleDateString("pt-BR")
+                  }
                   indicator="dot"
                 />
               }

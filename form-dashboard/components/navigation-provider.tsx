@@ -58,7 +58,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       const pathParts = pathname.split("/").filter(part => part && part !== 'dashboard');
 
       if (pathParts.length === 0) {
-        setBreadcrumbs([{ title: "Dashboard" }]);
+        setBreadcrumbs([{ title: "Formulários" }]);
         return;
       }
 
