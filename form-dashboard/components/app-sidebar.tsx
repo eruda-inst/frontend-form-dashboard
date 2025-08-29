@@ -10,7 +10,9 @@ import {
   Send,
   Settings2,
   ClipboardPenLine,
-  LayoutDashboard
+  LayoutDashboard,
+  Users,
+  UserCog
 } from "lucide-react"
 import type { User } from "@/app/types/user"
 
@@ -33,6 +35,18 @@ const navMain = [
       icon: ClipboardPenLine,
       isActive: true,
     },
+    {
+      title: "Usuários",
+      url: "#",
+      icon: Users,
+      isActive: true,
+    },
+    {
+      title: "Grupos e Permissões",
+      url: "#",
+      icon: UserCog,
+      isActive: true,
+    }
     // {
     //   title: "Models",
     //   url: "#",
@@ -76,30 +90,7 @@ const navMain = [
     //   ],
     // },
     
-    {
-      title: "Configurações",
-      url: "#",
-      isActive: true,
-      icon: Settings2,
-      items: [
-        {
-          title: "Usuários",
-          url: "#",
-        },
-        {
-          title: "Grupos e Permissões",
-          url: "#",
-        },
-        {
-          title: "Integrações",
-          url: "#",
-        },
-        {
-          title: "Temas",
-          url: "#",
-        }
-      ],
-    },
+   
   ]
 const navSecondary = [
     {
