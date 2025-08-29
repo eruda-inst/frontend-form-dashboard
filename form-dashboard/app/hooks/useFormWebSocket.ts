@@ -82,7 +82,7 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
       // Do not set a fatal error state here, as Strict Mode can cause transient errors.
       // The connection will close and the effect will retry.
       // setError("Erro de conexão em tempo real.") 
-      toast.error("Ocorreu um erro na conexão em tempo real. Tentando reconectar...")
+     
       setIsLoading(false)
     }
     
@@ -168,7 +168,7 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
       };
       newSocket.onerror = (event) => {
   ;
-        toast.error("Ocorreu um erro na conexão em tempo real. Tentando reconectar...");
+   
         setIsLoading(false);
       };
       

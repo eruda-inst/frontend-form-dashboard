@@ -163,20 +163,23 @@ export function ChartAreaInteractive({ formId }: ChartAreaInteractiveProps) {
               tickMargin={8}
               minTickGap={32}
               tickFormatter={(value) => {
-                const date = new Date(value)
+                const [year, month, day] = value.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
                 return date.toLocaleDateString("pt-BR", {
                   month: "short",
                   day: "numeric",
-                })
+                });
               }}
             />
             <ChartTooltip
               cursor={false}
               content={
                 <ChartTooltipContent
-                  labelFormatter={(value) =>
-                    new Date(value).toLocaleDateString("pt-BR")
-                  }
+                  labelFormatter={(value) => {
+                    const [year, month, day] = value.split('-').map(Number);
+                    const date = new Date(year, month - 1, day);
+                    return date.toLocaleDateString("pt-BR");
+                  }}
                   indicator="dot"
                 />
               }

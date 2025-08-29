@@ -71,58 +71,15 @@ export default function FormDetailsPage() {
   };
 
   useEffect(() => {
-    setUsersInRoom(usersInRoom);
-    return () => {
-      setUsersInRoom([]); // Clear usersInRoom when component unmounts
-    };
-  }, [usersInRoom, setUsersInRoom]);
-
-  useEffect(() => {
     if (form) {
       const breadcrumbs = [
-        { title: "Formulários", url: "/dashboard/forms" },
-        { title: form.titulo, url: `/dashboard/forms/${id}/visualizar-respostas` },
+        { title: "Formulários", url: "/dashboard" },
+        { title: form.titulo, url: `/dashboard/forms/${id}` },
         { title: "Respostas" }
       ];
       setBreadcrumbs(breadcrumbs);
     }
   }, [form, setBreadcrumbs, id]);
-
-  useEffect(() => {
-    const menubarData: MenubarMenuData[] = [
-      {
-        trigger: "Configurações",
-        content: [
-          {
-            label: "Editar questões",
-            onClick: () => router.push(`/dashboard/forms/${id}/edit-questions`),
-          },
-          {
-            label: "Operabilidades",
-            onClick: () => router.push(`/dashboard/forms/${id}/operabilities`),
-          },
-        ],
-      },
-      {
-        trigger: "Respostas",
-        content: [
-          {
-            label: "Visualizar",
-            onClick: () => router.push(`/dashboard/forms/${id}/visualizar-respostas`),
-          },
-          {
-            label: "Exportar",
-            onClick: () => router.push(`/dashboard/export/${id}`),
-          },
-        ],
-      },
-    ];
-    setMenubarData(menubarData);
-
-    return () => {
-      setMenubarData([]); // Clear menubar data when component unmounts
-    };
-  }, [id, router, setMenubarData]);
 
   if (isLoading) {
     return (
