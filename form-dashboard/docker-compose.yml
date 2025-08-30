@@ -1,0 +1,26 @@
+
+version: '3.8'
+
+services:
+  frontend:
+    build: .
+    container_name: form-dashboard-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # --- Configuração de Ambiente ---
+      NODE_ENV: production
+
+      # --- Configuração dos Cookies ---
+      # Defina como 'false' se seu ambiente de staging/produção não usa HTTPS.
+      # Defina como 'true' para produção final com HTTPS.
+      COOKIE_SECURE: 'false'
+
+      # --- Conexão com a API Externa ---
+      # URL da sua API de backend.
+      # Se a API estiver rodando na sua máquina local (host),
+      # você pode usar 'host.docker.internal' para que o contêiner a acesse.
+      # Exemplo: NEXT_PUBLIC_API_URL=http://host.docker.internal:3333
+      NEXT_PUBLIC_API_URL: 'http://host.docker.internal:3333' # Altere para a URL correta
+
+    restart: unless-stopped

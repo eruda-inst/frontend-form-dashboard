@@ -61,7 +61,9 @@ export async function POST(request: Request) {
 
     // Opções de cookie reutilizáveis
     const cookieOptions = {
-      secure: request.headers.get('x-forwarded-proto') === 'http' || process.env.NODE_ENV === 'production',
+            // A flag 'secure' será controlada pela variável de ambiente COOKIE_SECURE.
+      // Defina como 'true' em produção com HTTPS e 'false' em desenvolvimento ou staging sem HTTPS.
+      secure: process.env.COOKIE_SECURE === 'true',
       path: '/',
       // Em produção, defina o domínio para que os cookies sejam compartilhados
       // entre subdomínios (ex: 'app.seusite.com' e 'api.seusite.com').
