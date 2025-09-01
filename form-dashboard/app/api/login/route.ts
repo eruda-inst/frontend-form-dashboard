@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       // Em produção, defina o domínio para que os cookies sejam compartilhados
       // entre subdomínios (ex: 'app.seusite.com' e 'api.seusite.com').
       // O domínio deve começar com um ponto. Ex: .meusite.com
-      domain: process.env.NODE_ENV === 'production' ? 'forms.newnet.com.br' : undefined,
+      domain: process.env.NODE_ENV === 'production' ? '.newnet.com.br' : undefined,
     };
 
     // O accessToken precisa ser acessível pelo middleware e também pelo JavaScript
