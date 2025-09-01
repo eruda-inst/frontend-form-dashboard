@@ -30,3 +30,39 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+         
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: pesquisa_user
+      POSTGRES_PASSWORD: supersegura123
+      POSTGRES_DB: pesquisa_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    deploy:
+      restart_policy: { condition: on-failure }
+
+  backend:
+    image: iamreinaldo/pesquisa-api:latest
+    environment:
+      DATABASE_URL: postgresql://pesquisa_user:supersegura123@127.0.0.1:5499/pesquisa_db
+      DB_URL: postgresql://pesquisa_user:supersegura123@db:5432/pesquisa_db
+      JWT_SECRET: dcb318f7bbc70f0294b56da4b35375f09febf4ef09a4c4538f261d64eef9e5b8
+      MEDIA_ROOT: /app/media
+      MEDIA_URL: /media
+      MAX_IMAGE_SIZE_MB: "5"
+      ALLOWED_IMAGE_TYPES: '["image/jpeg","image/png","image/webp"]'
+      SECRET_KEY: supersegura
+      RUN_MIGRATIONS: "0"
+    ports:
+      - "8000:8000"
+    volumes:
+      - media:/app/media
+    deploy:
+      restart_policy: { condition: on-failure }
+
+volumes:
+  pgdata:
+  media:
