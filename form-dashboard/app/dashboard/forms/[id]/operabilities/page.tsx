@@ -1,34 +1,27 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
-import Cookies from "js-cookie"
-import { toast } from "sonner"
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import Cookies from "js-cookie";
+import { toast } from "sonner";
 
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Copy } from "lucide-react";
 
 export default function OperabilitiesPage() {
-  const { id: formulario_id } = useParams()
-  const [isPublished, setIsPublished] = useState(false)
-  const [slug, setSlug] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const { id: formulario_id } = useParams();
+  const [isPublished, setIsPublished] = useState(false);
+  const [slug, setSlug] = useState("");
 
   useEffect(() => {
     const fetchStatus = async () => {
-      const accessToken = Cookies.get("access_token")
+      const accessToken = Cookies.get("access_token");
       if (!accessToken) {
-        toast.error("Sessão expirada. Por favor, faça login novamente.")
-        return
+        toast.error("Sessão expirada. Por favor, faça login novamente.");
+        return;
       }
 
       try {
@@ -38,33 +31,36 @@ export default function OperabilitiesPage() {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
-          }
-        )
+          },
+        );
 
         if (!res.ok) {
-          throw new Error("Falha ao buscar o status do formulário.")
+          throw new Error("Falha ao buscar o status do formulário.");
         }
 
-        const data = await res.json()
-        setIsPublished(data.recebendo_respostas)
+        const data = await res.json();
+        setIsPublished(data.recebendo_respostas);
+        if (data.slug_publico) {
+          setSlug(data.slug_publico);
+        }
       } catch (error: any) {
         toast.error("Erro ao buscar status do formulário", {
           description: error.message,
-        })
+        });
       }
-    }
+    };
 
-    fetchStatus()
-  }, [formulario_id])
+    fetchStatus();
+  }, [formulario_id]);
 
   const handleTogglePublish = async (checked: boolean) => {
-    const accessToken = Cookies.get("access_token")
+    const accessToken = Cookies.get("access_token");
     if (!accessToken) {
-      toast.error("Sessão expirada. Por favor, faça login novamente.")
-      return
+      toast.error("Sessão expirada. Por favor, faça login novamente.");
+      return;
     }
 
-    const endpoint = checked ? "publicar" : "despublicar"
+    const endpoint = checked ? "publicar" : "despublicar";
 
     try {
       const res = await fetch(
@@ -74,29 +70,35 @@ export default function OperabilitiesPage() {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        }
-      )
+        },
+      );
 
       if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.detail || `Falha ao ${endpoint} o formulário.`)
+        const errorData = await res.json();
+        throw new Error(
+          errorData.detail || `Falha ao ${endpoint} o formulário.`,
+        );
       }
 
-      setIsPublished(checked)
-      toast.success(`Formulário ${checked ? "publicado" : "despublicado"} com sucesso!`)
+      setIsPublished(checked);
+      toast.success(
+        `Formulário ${checked ? "publicado" : "despublicado"} com sucesso!`,
+      );
 
       if (checked) {
-        const data = await res.json()
-        
-        setSlug(data.slug_publico as string)
-        setIsDialogOpen(true)
+        const data = await res.json();
+        setSlug(data.slug_publico as string);
+      } else {
+        setSlug("");
       }
     } catch (error: any) {
-      toast.error(`Erro ao ${endpoint} formulário`, { description: error.message })
+      toast.error(`Erro ao ${endpoint} formulário`, {
+        description: error.message,
+      });
     }
-  }
+  };
 
-  const formUrl = `${process.env.NEXT_PUBLIC_FORM_URL}/form/${slug}`
+  const formUrl = `${process.env.NEXT_PUBLIC_FORM_URL}/form/${slug}`;
 
   return (
     <div className="space-y-6">
@@ -116,32 +118,39 @@ export default function OperabilitiesPage() {
             className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
           />
           <div className="grid gap-1.5 font-normal">
-            <p className="text-sm leading-none font-medium">Ativar formulário</p>
+            <p className="text-sm leading-none font-medium">
+              Ativar formulário
+            </p>
             <p className="text-muted-foreground text-sm">
-              Torne seu formulário acessível publicamente para que os usuários possam
-              responder.
+              Torne seu formulário acessível publicamente para que os usuários
+              possam responder.
             </p>
           </div>
         </Label>
-      </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Formulário Publicado!</DialogTitle>
-            <DialogDescription>
-              Seu formulário está online e pronto para receber respostas. Compartilhe o
-              link abaixo:
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center space-x-2">
-            <Input value={formUrl} readOnly />
-            <Button onClick={() => navigator.clipboard.writeText(formUrl)}>
-              Copiar
-            </Button>
+        {slug && (
+          <div className="space-y-2">
+            <Label htmlFor="form-link">Link do formulário</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="form-link"
+                readOnly
+                value={formUrl}
+                className="flex-1 bg-muted/20"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() =>{ 
+                  navigator.clipboard.writeText(formUrl)
+                  toast.success("Link copiado com sucesso!")
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
     </div>
-  )
+  );
 }

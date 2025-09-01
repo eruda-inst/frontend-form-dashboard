@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
+import { toast } from "sonner";
 
 export async function POST(request: Request) {
   // 1. Pega a instância da "loja" de cookies uma única vez.
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
       })
       // Não precisamos nos preocupar com a resposta, o objetivo principal é deslogar.
     } catch (error) {
-      
+      toast.error(`Erro ao comunicar com o servidor durante o logout. ${error}`);
       // A falha na comunicação com o backend não deve impedir o logout do frontend.
     }
   }
