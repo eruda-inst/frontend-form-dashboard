@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     if (!apiRes.ok) {
       const errorData = await apiRes.json();
       return NextResponse.json(
-        { message: errorData || "Falha no login" },
+        { message: errorData + process.env.NEXT_PUBLIC_API_URL || "Falha no login" },
         { status: apiRes.status }
       );
     }
