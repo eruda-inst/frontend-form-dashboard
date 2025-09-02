@@ -41,6 +41,10 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
       if (!isSetupPage) {
         return redirect(request, "/setup-admin")
       }
+      const res = NextResponse.next();
+      res.headers.set("x-mw", "on");
+      return res;
+
       return NextResponse.next()
     }
 
@@ -55,13 +59,21 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
       if (isAuthPage || !pathname.startsWith("/dashboard")) {
         return redirect(request, "/dashboard")
       }
-      // Caso contrário, permite o acesso.
+      // Caso contrário, permite o acesso
+      const res = NextResponse.next();
+res.headers.set("x-mw", "on");
+return res;
+
       return NextResponse.next()
     }
 
     // Cenário 3: Usuário NÃO está autenticado (token inválido/expirado ou não existe).
     // Se ele já estiver em uma página pública (login/registro), permite o acesso.
     if (isAuthPage) {
+      const res = NextResponse.next();
+res.headers.set("x-mw", "on");
+return res;
+
       return NextResponse.next()
     }
 
@@ -77,6 +89,10 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     
     // Em caso de erro de rede (ex: API fora do ar), não bloqueia o usuário.
     // A página pode tentar renderizar e lidar com o erro no lado do cliente.
+    const res = NextResponse.next();
+res.headers.set("x-mw", "on");
+return res;
+
     return NextResponse.next()
   }
 }
