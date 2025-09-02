@@ -1,111 +1,95 @@
-import { NextResponse } from "next/server"
-import type { NextRequest, NextFetchEvent } from "next/server"
+// middleware.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-// Helper para criar respostas de redirecionamento de forma mais limpa.
-function redirect(request: NextRequest, path: string) {
-  const url = new URL(path, request.url)
-  return NextResponse.redirect(url)
+// Helpers
+function makeRedirect(request: NextRequest, path: string, reason: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = path;
+  url.search = "";
+  const res = NextResponse.redirect(url);
+  res.headers.set("x-mw", "redirect");
+  res.headers.set("x-mw-reason", reason);
+  return res;
 }
 
-export async function middleware(request: NextRequest, event: NextFetchEvent) {
-  const { pathname } = request.nextUrl
-  const accessToken = request.cookies.get("access_token")?.value
+function makeNext(reason: string) {
+  const res = NextResponse.next();
+  res.headers.set("x-mw", "on");
+  res.headers.set("x-mw-reason", reason);
+  return res;
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const accessToken = request.cookies.get("access_token")?.value ?? "";
 
   const isAuthPage =
-    pathname.startsWith("/login") || pathname.startsWith("/register")
-  const isSetupPage = pathname === "/setup-admin"
+    pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isSetupPage = pathname === "/setup-admin";
 
-  // Se não há token e o usuário tenta acessar uma página protegida, redireciona para o login.
-  // Esta é uma verificação rápida para evitar chamadas de API desnecessárias.
+  // 1) Sem token tentando acessar página protegida → login
   if (!accessToken && !isAuthPage && !isSetupPage) {
-    return redirect(request, "/login")
+    return makeRedirect(request, "/login", "no-token");
   }
 
-  const authStatusUrl = `${process.env.NEXT_PUBLIC_API_URL}/setup/status`
+  // 2) Verificação de status no backend (sem '//' na base)
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  const authStatusUrl = `${apiBase}/setup/status`;
 
   try {
-    // Usamos event.waitUntil para que a verificação de status não bloqueie a resposta inicial.
-    // No entanto, para a lógica de redirecionamento, precisamos esperar pela resposta.
     const authStatusResponse = await fetch(authStatusUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken || ""}`,
-      },
+      headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
-    })
+      next: { revalidate: 0 },
+    });
 
-    const { admin_existe, autenticado } = await authStatusResponse.json()
+    if (!authStatusResponse.ok) {
+      // Não bloqueia navegação se a API estiver fora/errada
+      return makeNext("status-fetch-not-ok");
+    }
 
-    // Cenário 1: Nenhum administrador foi configurado no sistema.
+    const { admin_existe, autenticado } = await authStatusResponse.json();
+
+    // 3) Sem admin → força /setup-admin
     if (!admin_existe) {
-      // Permite o acesso apenas à página de setup, redirecionando todo o resto para lá.
-      if (!isSetupPage) {
-        return redirect(request, "/setup-admin")
-      }
-      const res = NextResponse.next();
-      res.headers.set("x-mw", "on");
-      return res;
-
-      return NextResponse.next()
+      if (!isSetupPage) return makeRedirect(request, "/setup-admin", "no-admin");
+      return makeNext("no-admin-allow-setup");
     }
 
-    // A partir daqui, o admin já existe. A página de setup não deve ser mais acessível.
+    // 4) Admin existe → /setup-admin não deve ser acessível
     if (isSetupPage) {
-      return redirect(request, "/login")
+      return makeRedirect(request, "/login", "admin-exists-no-setup");
     }
 
-    // Cenário 2: Usuário está autenticado (token válido).
+    // 5) Autenticado
     if (autenticado) {
-      // Se ele tentar acessar uma página de autenticação, redireciona para o dashboard.
+      // Se tentar auth pages ou fora de /dashboard → manda pro /dashboard
       if (isAuthPage || !pathname.startsWith("/dashboard")) {
-        return redirect(request, "/dashboard")
+        return makeRedirect(request, "/dashboard", "authenticated-redirect");
       }
-      // Caso contrário, permite o acesso
-      const res = NextResponse.next();
-res.headers.set("x-mw", "on");
-return res;
-
-      return NextResponse.next()
+      return makeNext("authenticated-allow");
     }
 
-    // Cenário 3: Usuário NÃO está autenticado (token inválido/expirado ou não existe).
-    // Se ele já estiver em uma página pública (login/registro), permite o acesso.
-    if (isAuthPage) {
-      const res = NextResponse.next();
-res.headers.set("x-mw", "on");
-return res;
+    // 6) Não autenticado
+    if (isAuthPage) return makeNext("unauthenticated-auth-pages");
 
-      return NextResponse.next()
-    }
-
-    // Se ele tentar acessar uma página protegida, redireciona para o login
-    // E o mais importante: LIMPA OS COOKIES INVÁLIDOS para quebrar o loop.
-    const response = redirect(request, "/login")
-    response.cookies.delete("access_token")
-    response.cookies.delete("refresh_token")
-    response.cookies.delete("user")
-
-    return response
-  } catch (error) {
-    
-    // Em caso de erro de rede (ex: API fora do ar), não bloqueia o usuário.
-    // A página pode tentar renderizar e lidar com o erro no lado do cliente.
-    const res = NextResponse.next();
-res.headers.set("x-mw", "on");
-return res;
-
-    return NextResponse.next()
+    const res = makeRedirect(request, "/login", "unauthenticated-protected");
+    // limpa cookies inválidos (path raiz)
+    res.cookies.set("access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("user", "", { maxAge: 0, path: "/" });
+    return res;
+  } catch {
+    // Falha de rede/parse → não bloquear navegação
+    return makeNext("status-fetch-error");
   }
 }
 
+// Ajuste o matcher conforme seu roteamento.
+// Se tiver /extapi no mesmo host e NÃO quiser passar pelo middleware, adicione "extapi" abaixo.
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api|_next/static|_next/image|favicon\\.ico|extapi).*)",
   ],
-}
+};
