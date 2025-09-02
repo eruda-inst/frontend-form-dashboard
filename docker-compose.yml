@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   form-dashboard:
-    image: gabrieulevi/form-dashboard:0.0.1
+    image: gabrieulevi/form-dashboard:0.0.2
     ports:
       - "48620:3000"
     environment:
@@ -25,7 +25,7 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-        
+
   db:
     image: postgres:15
     environment:
