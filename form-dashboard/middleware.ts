@@ -1,23 +1,21 @@
-// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Helpers
-function makeRedirect(request: NextRequest, path: string, reason: string) {
-  const url = request.nextUrl.clone();
-  url.pathname = path;
-  url.search = "";
-  const res = NextResponse.redirect(url);
-  res.headers.set("x-mw", "redirect");
-  res.headers.set("x-mw-reason", reason);
+const DEBUG = process.env.MW_DEBUG_HEADERS === "1";
+
+function mark(res: NextResponse, reason: string, kind: "on" | "redirect" = "on") {
+  if (DEBUG) {
+    res.headers.set("x-mw", kind);
+    res.headers.set("x-mw-reason", reason);
+  }
   return res;
 }
 
-function makeNext(reason: string) {
-  const res = NextResponse.next();
-  res.headers.set("x-mw", "on");
-  res.headers.set("x-mw-reason", reason);
-  return res;
+function redirectTo(req: NextRequest, path: string, reason: string) {
+  const url = req.nextUrl.clone();
+  url.pathname = path;
+  url.search = "";
+  return mark(NextResponse.redirect(url), reason, "redirect");
 }
 
 export async function middleware(request: NextRequest) {
@@ -28,68 +26,61 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/login") || pathname.startsWith("/register");
   const isSetupPage = pathname === "/setup-admin";
 
-  // 1) Sem token tentando acessar página protegida → login
-  if (!accessToken && !isAuthPage && !isSetupPage) {
-    return makeRedirect(request, "/login", "no-token");
-  }
-
-  // 2) Verificação de status no backend (sem '//' na base)
+  // Base da API — prefira /extapi se quiser bypass do Next
   const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  // Se preferir bypass:
+  // const apiBase = "https://forms.newnet.com.br/extapi";
   const authStatusUrl = `${apiBase}/setup/status`;
 
+  // 1) SEMPRE checar status primeiro (rápido, com timeout)
+  let admin_existe = true;
+  let autenticado = false;
   try {
-    const authStatusResponse = await fetch(authStatusUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+    const resp = await fetch(authStatusUrl, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       cache: "no-store",
       next: { revalidate: 0 },
+      // timeout curto pra nunca travar navegação
+      signal: (AbortSignal as any).timeout ? (AbortSignal as any).timeout(1500) : undefined,
     });
 
-    if (!authStatusResponse.ok) {
-      // Não bloqueia navegação se a API estiver fora/errada
-      return makeNext("status-fetch-not-ok");
+    if (resp.ok) {
+      const j = await resp.json();
+      admin_existe = !!j?.admin_existe;
+      autenticado = !!j?.autenticado;
     }
-
-    const { admin_existe, autenticado } = await authStatusResponse.json();
-
-    // 3) Sem admin → força /setup-admin
-    if (!admin_existe) {
-      if (!isSetupPage) return makeRedirect(request, "/setup-admin", "no-admin");
-      return makeNext("no-admin-allow-setup");
-    }
-
-    // 4) Admin existe → /setup-admin não deve ser acessível
-    if (isSetupPage) {
-      return makeRedirect(request, "/login", "admin-exists-no-setup");
-    }
-
-    // 5) Autenticado
-    if (autenticado) {
-      // Se tentar auth pages ou fora de /dashboard → manda pro /dashboard
-      if (isAuthPage || !pathname.startsWith("/dashboard")) {
-        return makeRedirect(request, "/dashboard", "authenticated-redirect");
-      }
-      return makeNext("authenticated-allow");
-    }
-
-    // 6) Não autenticado
-    if (isAuthPage) return makeNext("unauthenticated-auth-pages");
-
-    const res = makeRedirect(request, "/login", "unauthenticated-protected");
-    // limpa cookies inválidos (path raiz)
-    res.cookies.set("access_token", "", { maxAge: 0, path: "/" });
-    res.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
-    res.cookies.set("user", "", { maxAge: 0, path: "/" });
-    return res;
   } catch {
-    // Falha de rede/parse → não bloquear navegação
-    return makeNext("status-fetch-error");
+    // Em erro de rede, segue com defaults
   }
+
+  // 2) Sem admin -> força setup (apenas /setup-admin permitido)
+  if (!admin_existe) {
+    if (!isSetupPage) return redirectTo(request, "/setup-admin", "no-admin");
+    return mark(NextResponse.next(), "no-admin-allow-setup");
+  }
+
+  // 3) Admin existe -> /setup-admin não deve ser acessível
+  if (isSetupPage) return redirectTo(request, "/login", "admin-exists-no-setup");
+
+  // 4) Com admin já configurado, decide por auth
+  if (autenticado) {
+    if (isAuthPage || !pathname.startsWith("/dashboard")) {
+      return redirectTo(request, "/dashboard", "authenticated-redirect");
+    }
+    return mark(NextResponse.next(), "authenticated-allow");
+  }
+
+  // 5) Não autenticado
+  if (isAuthPage) return mark(NextResponse.next(), "unauthenticated-auth-pages");
+
+  const res = redirectTo(request, "/login", "unauthenticated-protected");
+  res.cookies.set("access_token", "", { maxAge: 0, path: "/" });
+  res.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
+  res.cookies.set("user", "", { maxAge: 0, path: "/" });
+  return res;
 }
 
-// Ajuste o matcher conforme seu roteamento.
-// Se tiver /extapi no mesmo host e NÃO quiser passar pelo middleware, adicione "extapi" abaixo.
 export const config = {
-  matcher: [
-    "/((?!api|_next/static|_next/image|favicon\\.ico|extapi).*)",
-  ],
+  // Se /extapi está no mesmo host e você não quer que passe no middleware, mantenha excluído
+  matcher: ["/((?!api|extapi|_next/static|_next/image|favicon\\.ico).*)"],
 };
