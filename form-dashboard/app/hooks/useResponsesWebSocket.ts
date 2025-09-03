@@ -3,6 +3,7 @@ import { Resposta } from '@/app/types/responses';
 import { User } from '@/app/types/user';
 
 export const useResponsesWebSocket = (formId: string, accessToken: string | null) => {
+  console.log('useResponsesWebSocket hook called with formId:', formId);
   const [responses, setResponses] = useState<Resposta[]>([]);
   const [usersInRoom, setUsersInRoom] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -11,13 +12,16 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const connect = () => {
+    console.log('Attempting to connect WebSocket...');
     if (!formId || !accessToken) {
+      console.error('Form ID or access token is missing.');
       setError("Form ID or access token is missing.");
       setIsLoading(false);
       return;
     }
 
     const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL}/ws/respostas/formulario/${formId}?access_token=${accessToken}`;
+    console.log('Connecting to WebSocket at:', wsUrl);
     const socket = new WebSocket(wsUrl);
     ws.current = socket;
 
@@ -37,6 +41,7 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
         const data = JSON.parse(event.data);
         console.log("Parsed WebSocket data for responses:", data);
         if (data.tipo === 'bootstrap_respostas' && Array.isArray(data.dados)) {
+          console.log('Bootstrapping responses...');
           setResponses(data.dados);
           console.log("Responses after bootstrap:", data.dados);
           setIsLoading(false);
@@ -48,6 +53,7 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
             return newResponseArray;
           });
         } else if (data.tipo === 'usuarios_na_sala_respostas') {
+          console.log('Updating users in room:', data.usuarios);
           setUsersInRoom(data.usuarios);
         } else {
           console.warn("Unhandled WebSocket message type for responses:", data.tipo);
@@ -68,12 +74,14 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
     socket.onclose = (event) => {
       console.log("WebSocket for responses closed:", event);
       if (event.code !== 1000) { // Not a normal closure
+        console.log('WebSocket closed unexpectedly. Attempting to reconnect...');
         setError("WebSocket closed unexpectedly. Reconnecting...");
         // Always attempt to reconnect after a delay
         reconnectTimeout.current = setTimeout(() => {
           connect();
         }, 3000); // Attempt to reconnect after 3 seconds
       } else {
+        console.log('WebSocket closed normally.');
         // Normal closure, clear any pending reconnect attempts
         if (reconnectTimeout.current) {
           clearTimeout(reconnectTimeout.current);
@@ -84,9 +92,11 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
   };
 
   useEffect(() => {
+    console.log('useEffect triggered for WebSocket connection.');
     connect();
 
     return () => {
+      console.log('Cleaning up WebSocket connection.');
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
       }

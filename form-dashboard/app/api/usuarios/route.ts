@@ -9,8 +9,9 @@ export async function GET(request: Request) {
     if (!access_token) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/usuarios`;
+    
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/usuarios, with access_token: ${access_token}`;
+    console.log('Fetching from backend URL:', backendUrl);
     const response = await fetch(backendUrl, {
       headers: {
         'Authorization': `Bearer ${access_token}`,
@@ -19,13 +20,14 @@ export async function GET(request: Request) {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.log('Error fetching usuarios:', errorData);
       return NextResponse.json(errorData, { status: response.status });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    console.log(error)
+    return NextResponse.json({ message: 'Internal Server Error' , error: error}, { status: 500 });
   }
 }
