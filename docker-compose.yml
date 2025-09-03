@@ -1,8 +1,12 @@
 version: '3.8'
 
+# Adicione esta seção para definir a rede
+networks:
+  app-net:
+    driver: overlay
+
 services:
   form-dashboard:
-    # Adicione um nome de imagem. O Swarm precisa disso.
     image: form-dashboard:latest
     build:
       context: ./form-dashboard
@@ -18,9 +22,11 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+    # Conecte o serviço à nossa rede
+    networks:
+      - app-net
 
   client-form:
-    # Adicione um nome de imagem aqui também.
     image: client-form:latest
     build:
       context: ../client-form/client-form
@@ -33,6 +39,9 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+    # Conecte o serviço à nossa rede
+    networks:
+      - app-net
 
   db:
     image: postgres:15
@@ -52,6 +61,9 @@ services:
       start_period: 20s
     deploy:
       restart_policy: { condition: on-failure }
+    # Conecte o serviço à nossa rede
+    networks:
+      - app-net
 
   backend:
     image: iamreinaldo/pesquisa-api:latest
@@ -71,6 +83,9 @@ services:
       - media:/app/media
     deploy:
       restart_policy: { condition: on-failure }
+    # Conecte o serviço à nossa rede
+    networks:
+      - app-net
 
 volumes:
   pgdata:
