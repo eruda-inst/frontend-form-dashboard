@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   form-dashboard:
-    image: gabrieulevi/form-dashboard:0.0.2
+    image: gabrieulevi/form-dashboard:0.0.3
     ports:
       - "48620:3000"
     environment:
