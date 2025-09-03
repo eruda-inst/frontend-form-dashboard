@@ -2,26 +2,34 @@ version: '3.8'
 
 services:
   form-dashboard:
-    image: gabrieulevi/form-dashboard:0.0.3
+    # Adicione um nome de imagem. O Swarm precisa disso.
+    image: form-dashboard:latest
+    build:
+      context: ./form-dashboard
+      args:
+        - NEXT_PUBLIC_API_URL=https://forms.newnet.com.br/extapi
+        - NEXT_PUBLIC_WS_URL=wss://forms.newnet.com.br/extapi
+        - NEXT_PUBLIC_FORM_URL=https://pesquisa.newnet.com.br
     ports:
       - "48620:3000"
     environment:
       NODE_ENV: "production"
       COOKIE_SECURE: "true"
-      NEXT_PUBLIC_API_URL: "https://forms.newnet.com.br/extapi"
-      NEXT_PUBLIC_WS_URL: "wss://forms.newnet.com.br/extapi"
-      NEXT_PUBLIC_FORM_URL: "https://pesquisa.newnet.com.br"
     deploy:
       restart_policy:
         condition: on-failure
 
   client-form:
-    image: gabrieulevi/client-form:0.0.2
+    # Adicione um nome de imagem aqui também.
+    image: client-form:latest
+    build:
+      context: ../client-form/client-form
+      args:
+        - NEXT_PUBLIC_API_URL=https://forms.newnet.com.br/extapi
     ports:
       - "48621:3000"
     environment:
       NODE_ENV: "production"
-      NEXT_PUBLIC_API_URL: "https://forms.newnet.com.br/extapi"
     deploy:
       restart_policy:
         condition: on-failure

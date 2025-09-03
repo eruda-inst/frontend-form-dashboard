@@ -1,6 +1,13 @@
 # Stage 1: Install dependencies and build the application
 FROM node:20-alpine AS builder
 
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_WS_URL
+ARG NEXT_PUBLIC_FORM_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+ENV NEXT_PUBLIC_FORM_URL=$NEXT_PUBLIC_FORM_URL
+
 WORKDIR /app
 
 # Copy package.json and package-lock.json to leverage Docker cache
