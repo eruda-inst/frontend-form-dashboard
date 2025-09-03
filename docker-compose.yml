@@ -16,7 +16,7 @@ services:
         condition: on-failure
 
   client-form:
-    image: gabrieulevi/client-form:0.0.1
+    image: gabrieulevi/client-form:0.0.2
     ports:
       - "48621:3000"
     environment:
