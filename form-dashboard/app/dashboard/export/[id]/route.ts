@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import type { Pergunta, Form } from "@/app/types/forms";
-import type { Resposta } from "@/app/types/responses";
 
 /* ========================
  * Utilidades de string/CSV
@@ -15,9 +13,7 @@ function normalizeNewlines(s: string): string {
 /** Escapa valor para CSV (RFC 4180-ish) */
 function escapeCsvValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  // Converte tudo para string, normaliza quebras
   const stringValue = normalizeNewlines(String(value));
-  // Se tiver aspas, vírgula, quebra ou tab, envolve em aspas e duplica aspas internas
   if (
     stringValue.includes('"') ||
     stringValue.includes(",") ||
@@ -31,13 +27,15 @@ function escapeCsvValue(value: unknown): string {
 
 /** Gera nome ASCII seguro (para fallback) */
 function toAsciiFileName(name: string): string {
-  return name
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "") // remove diacríticos
-    .replace(/[–—−]/g, "-") // traços unicode → "-"
-    .replace(/[^\w.\-]+/g, "_") // qualquer coisa fora de [\w.-] → "_"
-    .replace(/^_+|_+$/g, "") // remove underscores nas bordas
-    .slice(0, 120) || "arquivo";
+  return (
+    name
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "") // remove diacríticos
+      .replace(/[–—−]/g, "-") // traços unicode → "-"
+      .replace(/[^\w.\-]+/g, "_") // qualquer coisa fora de [\w.-] → "_"
+      .replace(/^_+|_+$/g, "") // remove underscores nas bordas
+      .slice(0, 120) || "arquivo"
+  );
 }
 
 /** Percent-encode para filename* (RFC 5987) */
@@ -47,11 +45,14 @@ function encodeRFC5987(v: string): string {
     .replace(/%(7C|60|5E)/g, (m) => m.toLowerCase());
 }
 
-/** Junta linhas com CRLF e adiciona BOM UTF-8 */
-function toCsvBuffer(lines: string[]): Uint8Array {
+/** Constrói um ArrayBuffer UTF-8 (com BOM) a partir das linhas do CSV */
+function toCsvArrayBuffer(lines: string[]): ArrayBuffer {
   const bom = "\uFEFF";
   const content = lines.join("\r\n");
-  return new TextEncoder().encode(bom + content);
+  const bytes = new TextEncoder().encode(bom + content); // Uint8Array
+  const ab = new ArrayBuffer(bytes.byteLength); // garante ArrayBuffer "puro"
+  new Uint8Array(ab).set(bytes);
+  return ab;
 }
 
 /* ========================
@@ -74,7 +75,7 @@ async function safeFetch(
 }
 
 /* ========================
- * Tipos (fallback defensivo)
+ * Tipos mínimos defensivos
  * ======================== */
 
 type PerguntaTipo =
@@ -116,21 +117,18 @@ type RespostaMin = {
 };
 
 /* ========================
- * Handler
+ * Handler (ctx.params pode ser objeto ou Promise)
  * ======================== */
 
-export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: Request, ctx: any) {
+  const { id: formId } = await ctx.params; // funciona objeto ou Promise
+
   const cookieStore = cookies();
   const accessToken = (await cookieStore).get("access_token")?.value;
 
   if (!accessToken) {
     return NextResponse.json({ message: "Não autorizado" }, { status: 401 });
   }
-
-  const formId = params.id;
 
   try {
     // 1) Buscar formulário (perguntas)
@@ -157,21 +155,18 @@ export async function GET(
       );
     }
 
-    // Faz um parse defensivo
     const form: FormMin =
-      (await formRes.json().catch(() => null)) ||
-      ({} as unknown as FormMin);
+      (await formRes.json().catch(() => null)) || ({} as unknown as FormMin);
 
     const perguntas: PerguntaMin[] = Array.isArray(form?.perguntas)
-      ? form.perguntas
+      ? [...form.perguntas]
       : [];
 
-    // Ordena perguntas por 'ordem' se existir, mantendo estável
     perguntas.sort((a, b) => {
       const ao = a.ordem ?? Number.MAX_SAFE_INTEGER;
       const bo = b.ordem ?? Number.MAX_SAFE_INTEGER;
       if (ao !== bo) return ao - bo;
-      return a.texto.localeCompare(b.texto ?? "", "pt-BR");
+      return (a.texto ?? "").localeCompare(b.texto ?? "", "pt-BR");
     });
 
     // 2) Buscar respostas
@@ -194,17 +189,13 @@ export async function GET(
     if (!responsesRes.ok) {
       const body = await responsesRes.text().catch(() => "");
       throw new Error(
-        `Falha ao buscar as respostas (${responsesRes.status}). ${body?.slice(
-          0,
-          300
-        )}`
+        `Falha ao buscar as respostas (${responsesRes.status}). ${body?.slice(0, 300)}`
       );
     }
 
     const responses: RespostaMin[] =
       (await responsesRes.json().catch(() => [])) || [];
 
-    // Ordena respostas por criado_em asc (se quiser desc, inverta)
     responses.sort((a, b) => {
       const ta = Date.parse(a?.criado_em ?? "") || 0;
       const tb = Date.parse(b?.criado_em ?? "") || 0;
@@ -221,7 +212,6 @@ export async function GET(
     const csvLines: string[] = [];
     csvLines.push(headers.map(escapeCsvValue).join(","));
 
-    // Helper de data: se der ruim, cai para ISO
     function formatBrDate(iso: string): string {
       const d = new Date(iso);
       if (Number.isNaN(d.getTime())) return iso || "";
@@ -266,7 +256,6 @@ export async function GET(
             }
             case "multipla_escolha":
             case "caixa_selecao": {
-              // Junta várias opções por "; "
               const parts = items
                 .map((i) => i?.valor_opcao?.texto ?? i?.valor_opcao_texto ?? "")
                 .filter((x) => x !== null && x !== undefined && String(x).length);
@@ -274,7 +263,6 @@ export async function GET(
               break;
             }
             default: {
-              // Tipos novos caem num fallback textual
               const best =
                 items[0]?.valor_texto ??
                 (items[0]?.valor_numero !== null &&
@@ -293,7 +281,7 @@ export async function GET(
       csvLines.push(row.join(","));
     }
 
-    // 4) Monta headers Content-Disposition seguro
+    // 4) Headers de download (filename seguro, com UTF-8)
     const rawTitle = String(form?.titulo ?? "formulario").trim() || "formulario";
     const fallback = toAsciiFileName(`respostas_${rawTitle}`);
     const pretty = `respostas_${rawTitle}_${new Date().toISOString()}.csv`;
@@ -305,19 +293,15 @@ export async function GET(
     headersOut.set("Content-Type", "text/csv; charset=utf-8");
     headersOut.set("Content-Disposition", dispo);
 
-    // 5) Retorna buffer (BOM + CRLF)
-    const csvBuffer = toCsvBuffer(csvLines);
+    // 5) Retorno como ArrayBuffer (body compatível com BodyInit)
+    const ab = toCsvArrayBuffer(csvLines);
 
-    // Converte Uint8Array para Buffer
-    const csvBufferNode = Buffer.from(csvBuffer);
-
-    return new NextResponse(csvBufferNode, {
+    return new NextResponse(ab, {
       status: 200,
       headers: headersOut,
     });
   } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Ocorreu um erro interno.";
+    const message = err instanceof Error ? err.message : "Ocorreu um erro interno.";
     return NextResponse.json({ message }, { status: 500 });
   }
 }
