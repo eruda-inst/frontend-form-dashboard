@@ -10,7 +10,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
     
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/usuarios, with access_token: ${access_token}`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/usuarios`;
     console.log('Fetching from backend URL:', backendUrl);
     const response = await fetch(backendUrl, {
       headers: {
