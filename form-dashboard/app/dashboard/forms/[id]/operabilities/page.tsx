@@ -43,8 +43,8 @@ export default function OperabilitiesPage() {
 
   const accessToken = Cookies.get("access_token");
   const { form, updateFormulario } = useFormWebSocket(
-    formulario_id as string,
-    accessToken,
+    formulario_id as string, // Cast to string as useParams() can return string | string[]
+    accessToken ?? null,
   );
 
   useEffect(() => {
