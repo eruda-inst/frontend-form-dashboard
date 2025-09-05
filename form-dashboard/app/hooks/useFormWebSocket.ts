@@ -192,5 +192,16 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     }
   }
 
-  return { form, isLoading, error, sendMessage }
+  const updateFormulario = (titulo: string, descricao: string) => {
+    const message = {
+      tipo: "update_formulario",
+      conteudo: {
+        titulo,
+        descricao,
+      },
+    };
+    sendMessage(message);
+  };
+
+  return { form, isLoading, error, sendMessage, updateFormulario };
 }
