@@ -103,7 +103,7 @@ export default function OperabilitiesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Configurações de Operabilidade</h1>
+        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">Configurações de Operabilidade</h1>
         <p className="text-muted-foreground">
           Gerencie as configurações de operabilidade do seu formulário.
         </p>
