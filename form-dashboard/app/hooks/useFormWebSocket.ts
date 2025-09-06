@@ -93,6 +93,10 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     
     socket.onclose = (event) => {
       console.log("WebSocket connection closed:", event);
+      // Codigo 4001 é um codigo não-oficial que pode ser usado para indicar que o token de acesso expirou.
+      if (event.code === 4001) {
+        renewSession();
+      }
     };
 
     return () => {
@@ -115,7 +119,7 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
       return;
     }
 
-    await renewSession();
+    // await renewSession();
 
     const latestAccessToken = Cookies.get("access_token");
 

@@ -31,6 +31,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket";
+import {
+  TypographyH1,
+  TypographyH3,
+  TypographyMuted,
+  TypographyP,
+  TypographySmall,
+} from "@/components/ui/typography";
 
 export default function OperabilitiesPage() {
   const { id: formulario_id } = useParams();
@@ -180,10 +187,10 @@ export default function OperabilitiesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">Configurações de Operabilidade</h1>
-        <p className="text-muted-foreground">
+        <TypographyH1 className="text-left">Configurações de Operabilidade</TypographyH1>
+        <TypographyP className="text-muted-foreground !mt-2">
           Gerencie as configurações de operabilidade do seu formulário.
-        </p>
+        </TypographyP>
       </div>
 
       <Card>
@@ -232,13 +239,11 @@ export default function OperabilitiesPage() {
               className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
             />
             <div className="grid gap-1.5 font-normal">
-              <p className="text-sm leading-none font-medium">
-                Ativar formulário
-              </p>
-              <p className="text-muted-foreground text-sm">
+              <TypographySmall>Ativar formulário</TypographySmall>
+              <TypographyMuted className="!mt-0">
                 Torne seu formulário acessível publicamente para que os usuários
                 possam responder.
-              </p>
+              </TypographyMuted>
             </div>
           </Label>
           {slug && (
@@ -277,11 +282,11 @@ export default function OperabilitiesPage() {
         <CardContent>
           <div className="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/5 p-4">
             <div className="space-y-1">
-              <h3 className="font-semibold">Deletar Formulário</h3>
-              <p className="text-sm text-muted-foreground">
+              <TypographyH3>Deletar Formulário</TypographyH3>
+              <TypographyMuted className="!mt-0">
                 Esta ação é irreversível. Todos os dados do formulário,
                 incluindo respostas, serão perdidos.
-              </p>
+              </TypographyMuted>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>

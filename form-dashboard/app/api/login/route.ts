@@ -27,9 +27,17 @@ export async function POST(request: Request) {
     });
 
     if (!apiRes.ok) {
-      const errorData = await apiRes.json();
+      const errorBody = await apiRes.text();
+      let errorMessage = "Falha no login";
+      try {
+        const errorData = JSON.parse(errorBody);
+        errorMessage = errorData.message || JSON.stringify(errorData);
+      } catch (e) {
+        errorMessage = `Erro do servidor: ${apiRes.status} ${apiRes.statusText}. Verifique a URL da API.`;
+        console.error("API response was not JSON:", errorBody);
+      }
       return NextResponse.json(
-        { message: errorData + process.env.NEXT_PUBLIC_API_URL || "Falha no login" },
+        { message: errorMessage },
         { status: apiRes.status }
       );
     }

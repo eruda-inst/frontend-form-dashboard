@@ -75,26 +75,6 @@ export function DashboardHeader({}: DashboardHeaderProps) {
   const { usersInRoom } = useDashboard();
   const [allUsers, setAllUsers] = useState<User[]>([]);
 
-  
-
-  useEffect(() => {
-    const fetchAllUsers = async () => {
-      try {
-        const response = await fetch("/api/usuarios"); // Changed to /api/usuarios
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setAllUsers(data);
-        
-      } catch (error) {
-        
-      }
-    };
-
-    fetchAllUsers();
-  }, []);
-
   const usersWithImages = usersInRoom.map(userInRoom => {
     const foundUser = allUsers.find(user => user.username === userInRoom.username);
     const image = foundUser ? foundUser.imagem : "/default-avatar.png";
