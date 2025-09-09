@@ -30,7 +30,7 @@ async function refreshToken(): Promise<string> {
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   let accessToken = cookieStore.get('access_token')?.value;
 
   // Initial request
