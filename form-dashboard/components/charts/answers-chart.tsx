@@ -101,7 +101,6 @@ export function ChartAreaInteractive({ formId }: ChartAreaInteractiveProps) {
     // TODO: Handle error state better, maybe show a toast notification
     console.error("Error fetching chart data:", error)
   }
-
   return (
     <Card>
       <CardHeader className="flex items-center gap-2 space-y-0 border-b  sm:flex-row">

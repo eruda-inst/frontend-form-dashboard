@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
   if (accessToken && refreshToken && tokenExpired) {
       console.log("[Middleware] Access token expired. Attempting to refresh.");
       try {
-        const refreshApiUrl = new URL('/api/auth/refresh', request.url).toString();
+        const refreshApiUrl = new URL('/api/auth/refresh', request.nextUrl.origin).toString();
         console.log(`[Middleware] Calling refresh API: ${refreshApiUrl}`);
         const requestBody = JSON.stringify({ refresh_token: refreshToken });
         console.log(`[Middleware] Refresh request body: ${requestBody}`);

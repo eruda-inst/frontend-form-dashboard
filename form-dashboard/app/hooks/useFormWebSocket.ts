@@ -14,29 +14,6 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
   const ws = useRef<WebSocket | null>(null)
   const router = useRouter()
 
-  const renewSession = async () => {
-    console.log("Attempting to renew session...");
-    try {
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        console.log("Session renewed successfully.");
-      } else if (response.status === 401) {
-        console.error("Session expired, redirecting to login.");
-        toast.error("Sessão expirada. Por favor, faça login novamente.");
-        router.push("/login");
-      } else {
-        console.error("Failed to renew session with status:", response.status);
-        toast.error("Falha ao renovar a sessão.");
-      }
-    } catch (error) {
-      console.error("Network error during session renewal:", error);
-      toast.error("Erro de rede ao tentar renovar a sessão.");
-    }
-  };
-
   useEffect(() => {
     console.log("useEffect triggered. formId:", formId, "access_token:", !!access_token);
     if (!formId || !access_token) {
@@ -94,9 +71,6 @@ export function useFormWebSocket(formId: string | null, access_token: string | n
     socket.onclose = (event) => {
       console.log("WebSocket connection closed:", event);
       // Codigo 4001 é um codigo não-oficial que pode ser usado para indicar que o token de acesso expirou.
-      if (event.code === 4001) {
-        renewSession();
-      }
     };
 
     return () => {
