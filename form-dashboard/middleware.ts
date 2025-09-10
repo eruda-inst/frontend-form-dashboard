@@ -25,7 +25,8 @@ async function isTokenExpired(token: string) {
     const decodedJson = atob(payloadBase64);
     const decoded = JSON.parse(decodedJson);
     const exp = decoded.exp * 1000; // Convert to milliseconds
-    return Date.now() >= exp;
+    const timeBufferInMs = 880000; // 14 minutes and 40 seconds
+    return Date.now() >= exp - timeBufferInMs;
   } catch (error) {
     console.error("[Middleware] Failed to decode or parse token:", error);
     return true; // Consider token invalid if it cannot be parsed
@@ -38,61 +39,69 @@ export async function middleware(request: NextRequest) {
   let accessToken = request.cookies.get("access_token")?.value ?? "";
   const refreshToken = request.cookies.get("refresh_token")?.value ?? "";
 
-  console.log(`[Middleware] Initial Access Token: ${accessToken ? 'Present' : 'Missing'}`);
-  console.log(`[Middleware] Refresh Token: ${refreshToken ? 'Present' : 'Missing'}`);
+  const isAuthPage =
+    pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isSetupPage = pathname === "/setup-admin";
 
-  // --- Refresh Token Logic ---
+  // Only run refresh logic if NOT on an auth or setup page
+  if (!isAuthPage && !isSetupPage) {
+    console.log(`[Middleware] Initial Access Token: ${accessToken ? 'Present' : 'Missing'}`);
+    console.log(`[Middleware] Refresh Token: ${refreshToken ? 'Present' : 'Missing'}`);
+
+    // --- Refresh Token Logic ---
   const tokenExpired = await isTokenExpired(accessToken);
   console.log(`[Middleware] Access Token Expired: ${tokenExpired}`);
 
   if (accessToken && refreshToken && tokenExpired) {
-    console.log("[Middleware] Access token expired. Attempting to refresh.");
-    try {
-      const refreshApiUrl = new URL('/api/auth/refresh', request.url).toString();
-      console.log(`[Middleware] Calling refresh API: ${refreshApiUrl}`);
-      const requestBody = JSON.stringify({ refresh_token: refreshToken });
-      console.log(`[Middleware] Refresh request body: ${requestBody}`);
+      console.log("[Middleware] Access token expired. Attempting to refresh.");
+      try {
+        const refreshApiUrl = new URL('/api/auth/refresh', request.url).toString();
+        console.log(`[Middleware] Calling refresh API: ${refreshApiUrl}`);
+        const requestBody = JSON.stringify({ refresh_token: refreshToken });
+        console.log(`[Middleware] Refresh request body: ${requestBody}`);
 
-      const refreshResponse = await fetch(refreshApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: requestBody,
-      });
+        const refreshResponse = await fetch(refreshApiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: requestBody,
+        });
 
-      console.log(`[Middleware] Refresh API response status: ${refreshResponse.status}`);
+        console.log(`[Middleware] Refresh API response status: ${refreshResponse.status}`);
 
-      if (refreshResponse.ok) {
-        const { access_token: newAccessToken } = await refreshResponse.json();
-        accessToken = newAccessToken; // Update accessToken for subsequent checks
-        console.log("[Middleware] Token refreshed successfully. Updating access_token cookie.");
-        const response = NextResponse.next();
-        response.cookies.set("access_token", newAccessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
-        return response;
-      } else {
-        const errorText = await refreshResponse.text();
-        console.error(`[Middleware] Refresh token failed. Status: ${refreshResponse.status}, Response: ${errorText}. Clearing cookies and redirecting to login.`);
-        const response = redirectTo(request, "/login", "refresh-failed");
+        if (refreshResponse.ok) {
+          const { access_token: newAccessToken } = await refreshResponse.json();
+          accessToken = newAccessToken; // Update accessToken for subsequent checks
+          console.log("[Middleware] Token refreshed successfully. Updating access_token cookie.");
+          const response = NextResponse.next();
+          response.cookies.set("access_token", newAccessToken, { 
+            httpOnly: false, // Correct: allow client-side script access
+            secure: process.env.NODE_ENV === 'production', 
+            sameSite: 'lax', 
+            maxAge: 900 // 15 minutes
+          });
+          return response;
+        } else {
+          const errorText = await refreshResponse.text();
+          console.error(`[Middleware] Refresh token failed. Status: ${refreshResponse.status}, Response: ${errorText}. Clearing cookies and redirecting to login.`);
+          const response = redirectTo(request, "/login", "refresh-failed");
+          response.cookies.set("access_token", "", { maxAge: 0, path: "/" });
+          response.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
+          response.cookies.set("user", "", { maxAge: 0, path: "/" });
+          return response;
+        }
+      } catch (error) {
+        console.error(`[Middleware] Error during token refresh: ${error}. Clearing cookies and redirecting to login.`);
+        const response = redirectTo(request, "/login", "refresh-error");
         response.cookies.set("access_token", "", { maxAge: 0, path: "/" });
         response.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
         response.cookies.set("user", "", { maxAge: 0, path: "/" });
         return response;
       }
-    } catch (error) {
-      console.error(`[Middleware] Error during token refresh: ${error}. Clearing cookies and redirecting to login.`);
-      const response = redirectTo(request, "/login", "refresh-error");
-      response.cookies.set("access_token", "", { maxAge: 0, path: "/" });
-      response.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
-      response.cookies.set("user", "", { maxAge: 0, path: "/" });
-      return response;
     }
+    // --- End Refresh Token Logic ---
   }
-  // --- End Refresh Token Logic ---
-
-  const isAuthPage =
-    pathname.startsWith("/login") || pathname.startsWith("/register");
-  const isSetupPage = pathname === "/setup-admin";
 
   // Base da API — prefira /extapi se quiser bypass do Next
   const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");

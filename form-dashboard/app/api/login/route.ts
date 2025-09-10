@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       // O refreshToken é usado para obter um  novo accessToken sem que o usuário
       // precise fazer login novamente. Ele tem uma vida longa e é armazenado
       // de forma segura como um cookie httpOnly.
-      cookies()).set("refresh_token", refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: true });
+      cookies()).set("refresh_token", refreshToken, { ...cookieOptions, httpOnly: true });
     // O cookie 'user' também não precisa ser httpOnly, pois pode ser útil para
     // exibir informações do usuário na UI sem uma chamada de API.
     (await
