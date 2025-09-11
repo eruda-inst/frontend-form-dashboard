@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 // Função para decodificar o JWT e verificar a expiração
 async function isTokenExpired(token: string) {
   if (!token) {
+    console.log("[MW-LOG] No token provided.");
     return true;
   }
   try {
@@ -21,11 +22,15 @@ async function isTokenExpired(token: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  console.log("iniciando middleware... ");
   const { pathname } = request.nextUrl;
   console.log(`[MW-LOG] --- Start: ${request.method} ${pathname} ---`);
 
   let accessToken = request.cookies.get("access_token")?.value ?? "";
   const refreshToken = request.cookies.get("refresh_token")?.value ?? "";
+  console.log(`[MW-LOG] Current access_token: ${accessToken}`);
+  console.log(`[MW-LOG] Current refresh_token: ${refreshToken}`);
+
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
   const isSetupPage = pathname === "/setup-admin";
 
