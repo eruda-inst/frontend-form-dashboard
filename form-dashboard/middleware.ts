@@ -1,177 +1,159 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const DEBUG = process.env.MW_DEBUG_HEADERS === "1";
-
-function mark(res: NextResponse, reason: string, kind: "on" | "redirect" = "on") {
-  if (DEBUG) {
-    res.headers.set("x-mw", kind);
-    res.headers.set("x-mw-reason", reason);
-  }
-  return res;
-}
-
-function redirectTo(req: NextRequest, path: string, reason: string) {
-  const url = req.nextUrl.clone();
-  url.pathname = path;
-  url.search = "";
-  return mark(NextResponse.redirect(url), reason, "redirect");
-}
-
 // Função para decodificar o JWT e verificar a expiração
 async function isTokenExpired(token: string) {
+  if (!token) {
+    console.log("[MW-LOG] isTokenExpired: No token provided.");
+    return true; // No token is considered expired
+  }
   try {
     const payloadBase64 = token.split('.')[1];
     const decodedJson = atob(payloadBase64);
     const decoded = JSON.parse(decodedJson);
     const exp = decoded.exp * 1000; // Convert to milliseconds
-    const timeBufferInMs = 880000; // 14 minutes and 40 seconds
-    return Date.now() >= exp - timeBufferInMs;
+    const isExpired = Date.now() >= exp;
+    console.log(`[MW-LOG] Token expiration check: Expires at ${new Date(exp).toISOString()}, Is expired: ${isExpired}`);
+    return isExpired;
   } catch (error) {
-    console.error("[Middleware] Failed to decode or parse token:", error);
+    console.error("[MW-LOG] Failed to decode or parse token:", error);
     return true; // Consider token invalid if it cannot be parsed
   }
 }
 
 export async function middleware(request: NextRequest) {
-  console.log(`[Middleware] Starting for path: ${request.nextUrl.pathname}`);
+  console.log(`[MW-LOG] --- Middleware Start: ${request.method} ${request.nextUrl.pathname} ---`);
   const { pathname } = request.nextUrl;
+
   let accessToken = request.cookies.get("access_token")?.value ?? "";
   const refreshToken = request.cookies.get("refresh_token")?.value ?? "";
+  console.log(`[MW-LOG] Found Cookies: access_token=${accessToken ? 'yes' : 'no'}, refresh_token=${refreshToken ? 'yes' : 'no'}`);
 
-  const isAuthPage =
-    pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
   const isSetupPage = pathname === "/setup-admin";
 
   // Only run refresh logic if NOT on an auth or setup page
   if (!isAuthPage && !isSetupPage) {
-    console.log(`[Middleware] Initial Access Token: ${accessToken ? 'Present' : 'Missing'}`);
-    console.log(`[Middleware] Refresh Token: ${refreshToken ? 'Present' : 'Missing'}`);
+    const tokenExpired = await isTokenExpired(accessToken);
 
-    // --- Refresh Token Logic ---
-  const tokenExpired = await isTokenExpired(accessToken);
-  console.log(`[Middleware] Access Token Expired: ${tokenExpired}`);
-
-  if (accessToken && refreshToken && tokenExpired) {
-      console.log("[Middleware] Access token expired. Attempting to refresh.");
+    if (refreshToken && (!accessToken || tokenExpired)) {
+      console.log(`[MW-LOG] Condition met for token refresh (Refresh token exists, and Access token is missing or expired).`);
       try {
         const refreshApiUrl = new URL('/api/auth/refresh', request.nextUrl.origin).toString();
-        console.log(`[Middleware] Calling refresh API: ${refreshApiUrl}`);
-        const requestBody = JSON.stringify({ refresh_token: refreshToken });
-        console.log(`[Middleware] Refresh request body: ${requestBody}`);
-
+        console.log(`[MW-LOG] Attempting to refresh token by calling: ${refreshApiUrl}`);
+        
         const refreshResponse = await fetch(refreshApiUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: requestBody,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
         });
 
-        console.log(`[Middleware] Refresh API response status: ${refreshResponse.status}`);
+        console.log(`[MW-LOG] Refresh API response status: ${refreshResponse.status}`);
 
         if (refreshResponse.ok) {
-          const { access_token: newAccessToken } = await refreshResponse.json();
-          accessToken = newAccessToken; // Update accessToken for subsequent checks
-          console.log("[Middleware] Token refreshed successfully. Updating access_token cookie.");
+          const data = await refreshResponse.json();
+          const newAccessToken = data.access_token;
+          accessToken = newAccessToken; // IMPORTANT: Update accessToken for the rest of this middleware run
+          console.log("[MW-LOG] Token refreshed successfully. New access token obtained.");
+          
           const response = NextResponse.next();
           response.cookies.set("access_token", newAccessToken, { 
-            httpOnly: false, // Correct: allow client-side script access
+            httpOnly: false,
             secure: process.env.NODE_ENV === 'production', 
             sameSite: 'lax', 
             maxAge: 900 // 15 minutes
           });
+          console.log("[MW-LOG] Set new access_token in response cookie. Allowing request to proceed.");
           return response;
         } else {
           const errorText = await refreshResponse.text();
-          console.error(`[Middleware] Refresh token failed. Status: ${refreshResponse.status}, Response: ${errorText}. Clearing cookies and redirecting to login.`);
-          const response = redirectTo(request, "/login", "refresh-failed");
+          console.error(`[MW-LOG] Refresh token API failed. Status: ${refreshResponse.status}, Response: ${errorText}. Clearing cookies and redirecting to login.`);
+          const response = NextResponse.redirect(new URL("/login", request.url));
           response.cookies.set("access_token", "", { maxAge: 0, path: "/" });
           response.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
-          response.cookies.set("user", "", { maxAge: 0, path: "/" });
           return response;
         }
       } catch (error) {
-        console.error(`[Middleware] Error during token refresh: ${error}. Clearing cookies and redirecting to login.`);
-        const response = redirectTo(request, "/login", "refresh-error");
+        console.error(`[MW-LOG] CRITICAL: Error during token refresh fetch: ${error}. Clearing cookies and redirecting to login.`);
+        const response = NextResponse.redirect(new URL("/login", request.url));
         response.cookies.set("access_token", "", { maxAge: 0, path: "/" });
         response.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
-        response.cookies.set("user", "", { maxAge: 0, path: "/" });
         return response;
       }
     }
-    // --- End Refresh Token Logic ---
   }
 
-  // Base da API — prefira /extapi se quiser bypass do Next
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
-  // Se preferir bypass:
-  // const apiBase = "https://forms.newnet.com.br/extapi";
-  const authStatusUrl = `${apiBase}/setup/status`;
-  console.log(`[Middleware] Checking auth status at: ${authStatusUrl}`);
+  // After refresh logic, proceed with existing checks using the (potentially new) accessToken
+  console.log("[MW-LOG] Proceeding with page access checks.");
 
-  // 1) SEMPRE checar status primeiro (rápido, com timeout)
+  // 1. Check if admin user exists
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  const authStatusUrl = `${apiBase}/setup/status`;
+  console.log(`[MW-LOG] Checking auth status at: ${authStatusUrl}`);
+
   let admin_existe = true;
   let autenticado = false;
+
   try {
     const resp = await fetch(authStatusUrl, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       cache: "no-store",
-      next: { revalidate: 0 },
-      // timeout curto pra nunca travar navegação
       signal: (AbortSignal as any).timeout ? (AbortSignal as any).timeout(1500) : undefined,
     });
 
-    console.log(`[Middleware] Auth status API response status: ${resp.status}`);
+    console.log(`[MW-LOG] Auth status API response status: ${resp.status}`);
     if (resp.ok) {
       const j = await resp.json();
       admin_existe = !!j?.admin_existe;
       autenticado = !!j?.autenticado;
-      console.log(`[Middleware] Admin exists: ${admin_existe}, Authenticated: ${autenticado}`);
+      console.log(`[MW-LOG] Auth status result: admin_existe=${admin_existe}, autenticado=${autenticado}`);
     } else {
-      console.log(`[Middleware] Auth status API not OK: ${resp.statusText}`);
+      console.log(`[MW-LOG] Auth status API request was not OK. Status: ${resp.statusText}`);
     }
   } catch (error) {
-    console.error(`[Middleware] Error checking auth status: ${error}`);
-    // Em erro de rede, segue com defaults
+    console.error(`[MW-LOG] CRITICAL: Error fetching auth status: ${error}. Assuming defaults.`);
+    // In case of network error, proceed with default values (admin_existe=true, autenticado=false)
   }
 
-  // 2) Sem admin -> força setup (apenas /setup-admin permitido)
+  // 2. No admin -> force setup
   if (!admin_existe) {
-    console.log(`[Middleware] Admin does not exist. Current path: ${pathname}, isSetupPage: ${isSetupPage}`);
-    if (!isSetupPage) return redirectTo(request, "/setup-admin", "no-admin");
-    return mark(NextResponse.next(), "no-admin-allow-setup");
-  }
-
-  // 3) Admin existe -> /setup-admin não deve ser acessível
-  if (isSetupPage) {
-    console.log(`[Middleware] Admin exists, but trying to access setup page. Redirecting to /login.`);
-    return redirectTo(request, "/login", "admin-exists-no-setup");
-  }
-
-  // 4) Com admin já configurado, decide por auth
-  if (autenticado) {
-    console.log(`[Middleware] User authenticated. Current path: ${pathname}, isAuthPage: ${isAuthPage}`);
-    if (isAuthPage || !pathname.startsWith("/dashboard")) {
-      console.log(`[Middleware] Authenticated user trying to access auth page or non-dashboard route. Redirecting to /dashboard.`);
-      return redirectTo(request, "/dashboard", "authenticated-redirect");
+    if (!isSetupPage) {
+      console.log("[MW-LOG] Decision: Admin does not exist. Redirecting to /setup-admin.");
+      return NextResponse.redirect(new URL("/setup-admin", request.url));
     }
-    return mark(NextResponse.next(), "authenticated-allow");
+    console.log("[MW-LOG] Decision: Admin does not exist, already on setup page. Allowing.");
+    return NextResponse.next();
   }
 
-  // 5) Não autenticado
-  console.log(`[Middleware] User not authenticated. Current path: ${pathname}, isAuthPage: ${isAuthPage}`);
-  if (isAuthPage) return mark(NextResponse.next(), "unauthenticated-auth-pages");
+  // 3. Admin exists -> /setup-admin is inaccessible
+  if (isSetupPage) {
+    console.log("[MW-LOG] Decision: Admin exists, setup page is forbidden. Redirecting to /login.");
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 
-  console.log(`[Middleware] Unauthenticated user trying to access protected route. Redirecting to /login and clearing cookies.`);
-  const res = redirectTo(request, "/login", "unauthenticated-protected");
-  res.cookies.set("access_token", "", { maxAge: 0, path: "/" });
-  res.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
-  res.cookies.set("user", "", { maxAge: 0, path: "/" });
-  return res;
+  // 4. Authenticated user logic
+  if (autenticado) {
+    if (isAuthPage) {
+      console.log("[MW-LOG] Decision: User is authenticated but on auth page. Redirecting to /dashboard.");
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    console.log("[MW-LOG] Decision: User is authenticated and on an allowed page. Allowing.");
+    return NextResponse.next();
+  }
+
+  // 5. Unauthenticated user logic
+  if (isAuthPage) {
+    console.log("[MW-LOG] Decision: User is not authenticated, but on auth page. Allowing.");
+    return NextResponse.next();
+  }
+
+  console.log("[MW-LOG] Decision: User is not authenticated and on a protected page. Redirecting to /login.");
+  const response = NextResponse.redirect(new URL("/login", request.url));
+  response.cookies.set("access_token", "", { maxAge: 0, path: "/" });
+  response.cookies.set("refresh_token", "", { maxAge: 0, path: "/" });
+  return response;
 }
 
 export const config = {
-  // Se /extapi está no mesmo host e você não quer que passe no middleware, mantenha excluído
   matcher: ["/((?!api|extapi|_next/static|_next/image|favicon\.ico).*)"]
 };
