@@ -134,7 +134,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <Card className="bg-primary/10 text-primary-foreground mb-2">
           <CardContent className=" text-center">
-            <p className=" m-0 text-xs font-semibold">v0.3.7 (alpha) build 1</p>
+            <p className=" m-0 text-xs font-semibold">v0.3.8 (alpha) build 3</p>
           </CardContent>
         </Card>
         <NavUser />
