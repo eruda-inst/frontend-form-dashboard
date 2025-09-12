@@ -1,24 +1,24 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Função para decodificar o JWT e verificar a expiração
-async function isTokenExpired(token: string) {
-  if (!token) {
-    return true;
-  }
-  try {
-    const payloadBase64 = token.split('.')[1];
-    const decodedJson = atob(payloadBase64);
-    const decoded = JSON.parse(decodedJson);
-    const exp = decoded.exp * 1000;
-    const timeRemaining = exp - Date.now();
-    const refreshThreshold = 14 * 60 * 1000 + 50 * 1000; // 14m 50s
-    return timeRemaining <= refreshThreshold;
-  } catch (error) {
-    console.error("[MW-LOG] Failed to decode or parse token:", error);
-    return true;
-  }
-}
+// // Função para decodificar o JWT e verificar a expiração
+// async function isTokenExpired(token: string) {
+//   if (!token) {
+//     return true;
+//   }
+//   try {
+//     const payloadBase64 = token.split('.')[1];
+//     const decodedJson = atob(payloadBase64);
+//     const decoded = JSON.parse(decodedJson);
+//     const exp = decoded.exp * 1000;
+//     const timeRemaining = exp - Date.now();
+//     const refreshThreshold = 14 * 60 * 1000 + 50 * 1000; // 14m 50s
+//     return timeRemaining <= refreshThreshold;
+//   } catch (error) {
+//     console.error("[MW-LOG] Failed to decode or parse token:", error);
+//     return true;
+//   }
+// }
 
 export async function middleware(request: NextRequest) {
   console.log("[MW-LOG] Proceeding with new redirection rules.");
@@ -31,43 +31,43 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
   const isSetupPage = pathname === "/setup-admin";
 
-  let newAccessToken: string | null = null;
+  // let newAccessToken: string | null = null;
 
-  // Lógica de Refresh de Token (não executa em páginas de auth/setup)
-  if (refreshToken && !isAuthPage && !isSetupPage) {
-    if (await isTokenExpired(accessToken)) {
-      console.log(`[MW-LOG] Token is missing or about to expire. Attempting to refresh.`);
-      try {
-        console.log(`[MW-LOG] Calling internal refresh API at ${new URL('/api/auth/refresh', request.nextUrl.origin)}.`);
-        const refreshResponse = await fetch(new URL('/api/auth/refresh', request.nextUrl.origin || "Cant define nextUrl.origin"), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        });
+  // // Lógica de Refresh de Token (não executa em páginas de auth/setup)
+  // if (refreshToken && !isAuthPage && !isSetupPage) {
+  //   if (await isTokenExpired(accessToken)) {
+  //     console.log(`[MW-LOG] Token is missing or about to expire. Attempting to refresh.`);
+  //     try {
+  //       console.log(`[MW-LOG] Calling internal refresh API at ${new URL('/api/auth/refresh', request.nextUrl.origin)}.`);
+  //       const refreshResponse = await fetch(new URL('/api/auth/refresh', request.nextUrl.origin || "Cant define nextUrl.origin"), {
+  //         method: 'POST',
+  //         headers: { 'Content-Type': 'application/json' },
+  //         body: JSON.stringify({ refresh_token: refreshToken }),
+  //       });
 
-        if (refreshResponse.ok) {
-          const data = await refreshResponse.json();
-          newAccessToken = data.access_token;
-          if (newAccessToken !== null) {
-            accessToken = newAccessToken;
-          }
-          console.log("[MW-LOG] Token refreshed successfully.");
-        } else {
-          console.error(`[MW-LOG] Refresh token API failed. Clearing cookies.`);
-          const response = NextResponse.redirect(new URL("/login", request.url));
-          response.cookies.delete("access_token");
-          response.cookies.delete("refresh_token");
-          return response;
-        }
-      } catch (error) {
-        console.error(`[MW-LOG] CRITICAL: Error during token refresh fetch.`, error);
-        const response = NextResponse.redirect(new URL("/login", request.url));
-        response.cookies.delete("access_token");
-        response.cookies.delete("refresh_token");
-        return response;
-      }
-    }
-  }
+  //       if (refreshResponse.ok) {
+  //         const data = await refreshResponse.json();
+  //         newAccessToken = data.access_token;
+  //         if (newAccessToken !== null) {
+  //           accessToken = newAccessToken;
+  //         }
+  //         console.log("[MW-LOG] Token refreshed successfully.");
+  //       } else {
+  //         console.error(`[MW-LOG] Refresh token API failed. Clearing cookies.`);
+  //         const response = NextResponse.redirect(new URL("/login", request.url));
+  //         response.cookies.delete("access_token");
+  //         response.cookies.delete("refresh_token");
+  //         return response;
+  //       }
+  //     } catch (error) {
+  //       console.error(`[MW-LOG] CRITICAL: Error during token refresh fetch.`, error);
+  //       const response = NextResponse.redirect(new URL("/login", request.url));
+  //       response.cookies.delete("access_token");
+  //       response.cookies.delete("refresh_token");
+  //       return response;
+  //     }
+  //   }
+  // }
 
   // Lógica de Redirecionamento com as novas regras
   console.log("[MW-LOG] Proceeding with new redirection rules.");
@@ -120,16 +120,16 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Se um novo token foi gerado, anexa o cookie na resposta final
-  if (newAccessToken) {
-    console.log("[MW-LOG] Attaching new access_token to the final response.");
-    response.cookies.set("access_token", newAccessToken, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-    });
-  }
+  // // Se um novo token foi gerado, anexa o cookie na resposta final
+  // if (newAccessToken) {
+  //   console.log("[MW-LOG] Attaching new access_token to the final response.");
+  //   response.cookies.set("access_token", newAccessToken, {
+  //     httpOnly: false,
+  //     secure: process.env.NODE_ENV === 'production',
+  //     sameSite: 'lax',
+  //     path: '/',
+  //   });
+  // }
 
   return response;
 }
