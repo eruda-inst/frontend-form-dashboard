@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     (await
       // O accessToken precisa ser acessível pelo middleware e também pelo JavaScript
       // do lado do cliente para chamadas de API. Por isso, NÃO é httpOnly.
-      cookies()).set("access_token", accessToken, { ...cookieOptions, maxAge: 60 * 15, httpOnly: false }); // 15 minutos
+      cookies()).set("access_token", accessToken, { ...cookieOptions, httpOnly: false });
     // O refreshToken é usado para obter um  novo accessToken sem que o usuário
     // precise fazer login novamente. Ele tem uma vida longa e é armazenado
     // de forma segura como um cookie httpOnly.
