@@ -21,6 +21,8 @@ async function isTokenExpired(token: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  console.log("[MW-LOG] Proceeding with new redirection rules.");
+  console.log(`[MW-LOG] Access Token Present: ${process.env.NEXT_PUBLIC_API_URL}`);
   const { pathname } = request.nextUrl;
   console.log(`[MW-LOG] --- Start: ${request.method} ${pathname} ---`);
 
