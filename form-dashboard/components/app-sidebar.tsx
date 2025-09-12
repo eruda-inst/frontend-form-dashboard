@@ -27,6 +27,7 @@ import {
   SidebarHeader,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Card, CardContent } from "@/components/ui/card"
 // import Separator from "@/components/ui/separator"
 const navMain = [
     {
@@ -131,6 +132,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         {/* <NavSecondary items={navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
+        <Card className="bg-primary/10 text-primary-foreground mb-2">
+          <CardContent className=" text-center">
+            <p className=" m-0 text-xs font-semibold">v0.3.7 (alpha) build 1</p>
+          </CardContent>
+        </Card>
         <NavUser />
       </SidebarFooter>
     </Sidebar>
