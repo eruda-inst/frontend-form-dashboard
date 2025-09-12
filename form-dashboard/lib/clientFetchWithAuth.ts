@@ -1,13 +1,5 @@
 // lib/clientFetchWithAuth.ts
-
-function getCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') {
-    return undefined;
-  }
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
-}
+import { getCookie, refreshAccessTokenIfNeeded } from './tokenManager';
 
 let isRefreshing = false;
 let failedQueue: { resolve: (value: unknown) => void; reject: (reason?: any) => void; url: string; options: RequestInit; }[] = [];
@@ -26,6 +18,7 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 export async function clientFetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  await refreshAccessTokenIfNeeded();
   let accessToken = getCookie('access_token');
 
   const finalOptions: RequestInit = {
@@ -53,12 +46,9 @@ export async function clientFetchWithAuth(url: string, options: RequestInit = {}
     isRefreshing = true;
 
     try {
-      const refreshResponse = await fetch('/api/auth/refresh', {
-        method: 'POST',
-      });
-
-      if (!refreshResponse.ok) {
-        // Refresh failed, logout user
+      await refreshAccessTokenIfNeeded();
+      const newAccessToken = getCookie('access_token');
+      if (!newAccessToken) {
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
@@ -67,12 +57,10 @@ export async function clientFetchWithAuth(url: string, options: RequestInit = {}
         isRefreshing = false;
         return Promise.reject(error);
       }
-      
-      // The cookie is automatically updated by the API route.
-      const newAccessToken = getCookie('access_token');
+
       processQueue(null, newAccessToken);
       isRefreshing = false;
-      
+
       // Retry the original request with new token
       const newFinalOptions: RequestInit = {
         ...options,
@@ -80,9 +68,7 @@ export async function clientFetchWithAuth(url: string, options: RequestInit = {}
           ...options.headers,
         },
       };
-      if (newAccessToken) {
-        (newFinalOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${newAccessToken}`;
-      }
+      (newFinalOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${newAccessToken}`;
       return await fetch(url, newFinalOptions);
 
     } catch (error) {
