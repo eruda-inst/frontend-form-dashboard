@@ -52,14 +52,14 @@ export async function refreshAccessTokenIfNeeded() {
       }
 
       const data = await response.json();
-      if (!data.access_token) {
+      const newAccessToken = data.access_token;
+      if (typeof newAccessToken === 'string' && newAccessToken) {
+        setCookie('access_token', newAccessToken);
+        console.log('[TokenManager] Token refreshed successfully.');
+      } else {
         console.error('[TokenManager] No access token in refresh response');
         return;
       }
-
-      accessToken = data.access_token;
-      setCookie('access_token', accessToken);
-      console.log('[TokenManager] Token refreshed successfully.');
     } catch (error) {
       console.error('[TokenManager] Error refreshing token:', error);
     }
