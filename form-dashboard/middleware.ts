@@ -68,6 +68,7 @@ export async function middleware(request: NextRequest) {
 
   // Lógica de Redirecionamento com as novas regras
   console.log("[MW-LOG] Proceeding with new redirection rules.");
+  console.log(`[MW-LOG] Access Token Present: ${process.env.NEXT_PUBLIC_API_URL}`);
   const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
   const authStatusUrl = `${apiBase}/setup/status`;
   let grupo_admin_existe = true;
