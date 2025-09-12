@@ -127,7 +127,6 @@ export async function middleware(request: NextRequest) {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 880, // 14m 40s
       path: '/',
     });
   }
