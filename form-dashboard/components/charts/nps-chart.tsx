@@ -23,6 +23,7 @@ interface NpsChartProps {
     scoreCounts: {
       score: number
       count: number
+      optionText?: string
     }[]
   }
 }
@@ -32,7 +33,7 @@ export function NpsChart({ data }: NpsChartProps) {
   const chartData = data.scoreCounts
     .filter((item) => item.count > 0)
     .map((item) => ({
-      name: String(item.score),
+      name: item.optionText || String(item.score),
       value: item.count,
     }))
 
@@ -49,7 +50,7 @@ export function NpsChart({ data }: NpsChartProps) {
     <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle>{data.questionText}</CardTitle>
-        <CardDescription>Distribuição de respostas NPS</CardDescription>
+        <CardDescription>Distribuição de respostas</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer config={chartConfig} className="w-full h-full aspect-auto">
@@ -80,7 +81,7 @@ export function NpsChart({ data }: NpsChartProps) {
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="text-muted-foreground leading-none">
-          Exibindo o total de respostas para cada nota.
+          Exibindo o total de respostas para cada opção.
         </div>
       </CardFooter>
     </Card>

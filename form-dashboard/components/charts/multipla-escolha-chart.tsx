@@ -1,9 +1,4 @@
-"use client"
-
-import { useEffect, useMemo, useState } from "react"
-import Cookies from "js-cookie"
-import { Loader2 } from "lucide-react"
-import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
+import { Bar, BarChart, PolarAngleAxis, PolarGrid, Radar, RadarChart, XAxis, YAxis } from "recharts"
 
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket"
@@ -29,6 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { NpsChart } from "./nps-chart"
+import { useEffect, useMemo, useState } from "react"
+import { Loader2 } from "lucide-react"
+import Cookies from "js-cookie"
 
 export function MultiplaEscolhaChart({ formId }: { formId: string }) {
   const accessToken = Cookies.get("access_token") || null
@@ -109,6 +108,25 @@ export function MultiplaEscolhaChart({ formId }: { formId: string }) {
 
   if (multiChoiceQuestions.length === 0) {
     return null // Or a message indicating no multiple choice questions
+  }
+
+  if (
+    selectedQuestion &&
+    selectedQuestion.tipo === "multipla_escolha" &&
+    Array.isArray((selectedQuestion as any).opcoes) &&
+    (selectedQuestion as any).opcoes.length < 3
+  ) {
+    const opcoes = (selectedQuestion as any).opcoes;
+    const npsChartData = {
+      questionText: selectedQuestion.texto,
+      scoreCounts: chartData.map((d, i) => ({ score: i, count: d.count, optionText: d.option })),
+    };
+    console.log("NpsChart data prepared:", npsChartData);
+    return (
+      <div className="min-h-[300px]">
+        <NpsChart data={npsChartData} />
+      </div>
+    )
   }
 
   return (

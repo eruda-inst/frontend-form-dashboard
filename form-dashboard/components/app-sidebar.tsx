@@ -28,6 +28,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Card, CardContent } from "@/components/ui/card"
+import { version } from "../package.json"
 // import Separator from "@/components/ui/separator"
 const navMain = [
     {
@@ -134,7 +135,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <Card className="bg-primary/10 text-primary-foreground mb-2">
           <CardContent className=" text-center">
-            <p className=" m-0 text-xs font-semibold">v0.3.81 (alpha) build 3</p>
+            <p className=" m-0 text-xs font-semibold">v{version}</p>
           </CardContent>
         </Card>
         <NavUser />
