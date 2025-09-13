@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import { CreateFormDialog } from "@/components/create-form-dialog"
 import type { Form } from "@/app/types/forms"
 
-export default function FormsPage() {
+export default function Page() {
   const router = useRouter()
 
   const [forms, setForms] = useState<Form[]>([])
@@ -98,7 +98,7 @@ export default function FormsPage() {
           <Card
             key={form.id}
             className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-105"
-            onClick={() => router.push(`/dashboard/forms/${form.id}`)}
+            onClick={() => router.push(`/formularios/${form.id}`)}
           >
             <CardHeader>
               <CardTitle className="truncate">{form.titulo}</CardTitle>

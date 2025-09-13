@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { ChevronRight, type LucideIcon } from "lucide-react"
 
 import {
@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/collapsible"
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuAction,
   SidebarMenuButton,
@@ -19,7 +18,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
-import { useNavigation } from "@/components/navigation-provider"
 
 export function NavMain({
   items,
@@ -28,29 +26,30 @@ export function NavMain({
     title: string
     url: string
     icon: LucideIcon
-    isActive?: boolean
     items?: {
       title: string
       url: string
     }[]
   }[]
 }) {
-  const { activeTitle, setActiveTitle } = useNavigation()
   const router = useRouter()
+  const pathname = usePathname()
 
   return (
     <SidebarGroup>
-      {/* <SidebarGroupLabel>Visualização</SidebarGroupLabel> */}
       <SidebarMenu>
         {items.map((item) => (
-          <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
+          <Collapsible
+            key={item.title}
+            asChild
+            defaultOpen={pathname.startsWith(item.url)}
+          >
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip={item.title}
-                isActive={activeTitle === item.title}
+                isActive={pathname === item.url}
                 onClick={() => {
-                  setActiveTitle(item.title)
-                  router.push("/dashboard")
+                  router.push(item.url)
                 }}
               >
                 <item.icon />
@@ -70,13 +69,12 @@ export function NavMain({
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton
                             asChild
-                            isActive={activeTitle === subItem.title}
+                            isActive={pathname === subItem.url}
                           >
                             <button
                               type="button"
                               onClick={() => {
-                                setActiveTitle(subItem.title)
-                                router.push("/dashboard")
+                                router.push(subItem.url)
                               }}
                             >
                               <span>{subItem.title}</span>

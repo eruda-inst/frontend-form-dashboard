@@ -7,6 +7,10 @@ interface DashboardContextProps {
   setSelectedItem: (item: string | null) => void
   usersInRoom: User[]
   setUsersInRoom: (users: User[]) => void
+  user: User | null
+  setUser: (user: User | null) => void
+  isLoadingUser: boolean
+  setIsLoadingUser: (isLoading: boolean) => void
 }
 
 const DashboardContext = React.createContext<DashboardContextProps | undefined>(undefined)
@@ -14,9 +18,20 @@ const DashboardContext = React.createContext<DashboardContextProps | undefined>(
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null)
   const [usersInRoom, setUsersInRoom] = React.useState<User[]>([])
+  const [user, setUser] = React.useState<User | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = React.useState(true)
 
   return (
-    <DashboardContext.Provider value={{ selectedItem, setSelectedItem, usersInRoom, setUsersInRoom }}>
+    <DashboardContext.Provider value={{
+      selectedItem,
+      setSelectedItem,
+      usersInRoom,
+      setUsersInRoom,
+      user,
+      setUser,
+      isLoadingUser,
+      setIsLoadingUser,
+    }}>
       {children}
     </DashboardContext.Provider>
   )

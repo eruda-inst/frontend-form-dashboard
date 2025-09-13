@@ -10,6 +10,7 @@ import { NumeroChart } from "@/components/charts/numero-chart"
 import { useEffect, useMemo } from "react";
 import { useParams, useRouter }
 from "next/navigation"
+import { useNavigation } from "@/components/navigation-provider"; // Added this import
 import Cookies from "js-cookie"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket"
@@ -34,6 +35,7 @@ export default function FormDetailsPage() {
   const params = useParams()
   const router = useRouter();
   const { setMenubarData } = useMenubar();
+  const { setPageBreadcrumbs } = useNavigation(); // Added this line
 
   const id = params.id as string
   const access_token = Cookies.get("access_token") || null
@@ -42,7 +44,14 @@ export default function FormDetailsPage() {
   const { form, isLoading, error } = useFormWebSocket(id, access_token);
   const { responses } = useResponsesWebSocket(id, access_token);
 
- 
+  // Added this useEffect block
+  useEffect(() => {
+    if (form) {
+      const title = form.titulo.length > 20 ? `${form.titulo.substring(0, 20)}...` : form.titulo;
+      setPageBreadcrumbs([{ title, url: `/formularios/${id}` }]);
+    }
+  }, [form, id, setPageBreadcrumbs]);
+
 
   useEffect(() => {
     const menubarData: MenubarMenuData[] = [
@@ -51,11 +60,11 @@ export default function FormDetailsPage() {
         content: [
           {
             label: "Editar questões",
-            onClick: () => router.push(`/dashboard/forms/${id}/edit-questions`),
+            onClick: () => router.push(`/formularios/${id}/edit-questions`),
           },
           {
             label: "Operabilidades",
-            onClick: () => router.push(`/dashboard/forms/${id}/operabilities`),
+            onClick: () => router.push(`/formularios/${id}/operabilities`),
           },
         ],
       },
@@ -64,11 +73,11 @@ export default function FormDetailsPage() {
         content: [
           {
             label: "Visualizar",
-            onClick: () => router.push(`/dashboard/forms/${id}/visualizar-respostas`),
+            onClick: () => router.push(`/formularios/${id}/visualizar-respostas`),
           },
           {
             label: "Exportar",
-            onClick: () => router.push(`/dashboard/export/${id}`),
+            onClick: () => router.push(`/formularios/${id}/export`),
           },
         ],
       },

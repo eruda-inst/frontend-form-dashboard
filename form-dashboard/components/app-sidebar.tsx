@@ -33,21 +33,18 @@ import { version } from "../package.json"
 const navMain = [
     {
       title: "Formulários",
-      url: "#",
+      url: "/formularios",
       icon: ClipboardPenLine,
-      isActive: true,
     },
     {
       title: "Usuários",
-      url: "#",
+      url: "/usuarios",
       icon: Users,
-      isActive: true,
     },
     {
       title: "Grupos e Permissões",
-      url: "#",
+      url: "/grupos-e-permissoes",
       icon: UserCog,
-      isActive: true,
     }
     // {
     //   title: "Models",

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { User } from "@/app/types/user"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
@@ -30,48 +30,13 @@ import {
 } from "@/components/ui/sidebar"
 import { EditProfileDialog } from "./edit-profile-dialog"
 import { Skeleton } from "./ui/skeleton"
+import { useDashboard } from "./dashboard-context"
 
 export function NavUser() {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { user, isLoadingUser } = useDashboard()
   const { isMobile } = useSidebar()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const userCookie = Cookies.get("user")
-      const accessToken = Cookies.get("access_token")
-
-      if (userCookie && accessToken) {
-        try {
-          const userData = JSON.parse(userCookie)
-          const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/usuarios/${userData.id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-              },
-            }
-          )
-          if (!response.ok) {
-            throw new Error("Failed to fetch user data")
-          }
-          const data = await response.json()
-          setUser(data)
-        } catch (error) {
-          
-          toast.error("Failed to load user profile.")
-        } finally {
-          setIsLoading(false)
-        }
-      } else {
-        setIsLoading(false)
-      }
-    }
-
-    fetchUser()
-  }, [])
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -94,7 +59,7 @@ export function NavUser() {
     return `${firstInitial}${lastInitial}`.toUpperCase()
   }
 
-  if (isLoading) {
+  if (isLoadingUser) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>

@@ -34,6 +34,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Button } from "@/components/ui/button"
 import { Loader2, Trash } from "lucide-react"
+import { useNavigation } from "@/components/navigation-provider";
 
 // Componente auxiliar para renderizar cada tipo de pergunta
 const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
@@ -151,12 +152,25 @@ export default function FormDetailsPage() {
   const params = useParams()
   const { setUsersInRoom } = useDashboard();
   const [pendingDeletion, setPendingDeletion] = useState<string[]>([]);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string>("");
 
   const id = params.id as string
   const access_token = Cookies.get("access_token") || null
 
 
   const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token)
+
+  const { setPageBreadcrumbs } = useNavigation();
+
+  useEffect(() => {
+    if (form) {
+      const formTitle = form.titulo.length > 20 ? `${form.titulo.substring(0, 20)}...` : form.titulo;
+      setPageBreadcrumbs([
+        { title: formTitle, url: `/formularios/${id}` },
+        { title: "Questões" },
+      ]);
+    }
+  }, [form, id, setPageBreadcrumbs]);
 
 
 
@@ -252,6 +266,16 @@ export default function FormDetailsPage() {
                     Essa ação não pode ser desfeita. Isso irá deletar permanentemente esta pergunta do formulário.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="space-y-2">
+                  <Label htmlFor="delete-confirmation">
+                    Para confirmar, digite <strong>deletar</strong> abaixo:
+                  </Label>
+                  <Input
+                    id="delete-confirmation"
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  />
+                </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction onClick={() => handleDeleteQuestion(pergunta.id)}>Deletar</AlertDialogAction>

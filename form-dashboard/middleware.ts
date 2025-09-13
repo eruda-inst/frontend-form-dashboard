@@ -99,14 +99,18 @@ export async function middleware(request: NextRequest) {
     console.log("[MW-LOG] Rule 1: Admin group does not exist.");
     response = isSetupPage ? NextResponse.next() : NextResponse.redirect(new URL("/setup-admin", request.url));
   } 
-  // REGRA 2: Usuário autenticado só pode acessar /dashboard
+  // REGRA 2: Usuário autenticado
   else if (autenticado) {
     console.log("[MW-LOG] Rule 2: User is authenticated.");
-    if (pathname.startsWith("/dashboard")) {
+    // Redireciona para /formularios se tentar acessar /login, /register ou /setup-admin (quando admin já existe)
+    if (isAuthPage || isSetupPage) {
+        console.log(`[MW-LOG] Authenticated user on auth/setup page ('${pathname}'), redirecting to /formularios.`);
+        response = NextResponse.redirect(new URL("/formularios", request.url));
+    }
+    // Permite o acesso a qualquer outra página. O Next.js cuidará do 404.
+    else {
+        console.log(`[MW-LOG] Authenticated user accessing '${pathname}'. Allowing.`);
         response = NextResponse.next();
-    } else {
-        console.log(`[MW-LOG] Redirecting to /dashboard from '${pathname}'`);
-        response = NextResponse.redirect(new URL("/dashboard", request.url));
     }
   } 
   // REGRA 3: Usuário não autenticado só pode acessar /login e /register

@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button"
 import type { Resposta, RespostaItem } from "@/app/types/responses";
 import type { Pergunta } from "@/app/types/forms";
 import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket";
+import { useNavigation } from "@/components/navigation-provider";
 
 const getAnswerValue = (item?: RespostaItem, pergunta?: Pergunta) => {
   if (!item) {
@@ -52,6 +53,7 @@ export default function FormDetailsPage() {
   const router = useRouter();
   const { setMenubarData } = useMenubar();
   const { setUsersInRoom } = useDashboard();
+  const { setPageBreadcrumbs } = useNavigation();
 
   const id = params.id as string
   const access_token = Cookies.get("access_token") || null
@@ -66,6 +68,16 @@ export default function FormDetailsPage() {
     setSelectedResponse(response);
     setIsDialogOpen(true);
   };
+
+  useEffect(() => {
+    if (form) {
+      const formTitle = form.titulo.length > 20 ? `${form.titulo.substring(0, 20)}...` : form.titulo;
+      setPageBreadcrumbs([
+        { title: formTitle, url: `/formularios/${id}` },
+        { title: "Visualizar Respostas" },
+      ]);
+    }
+  }, [form, id, setPageBreadcrumbs]);
 
   if (isLoading) {
     return (

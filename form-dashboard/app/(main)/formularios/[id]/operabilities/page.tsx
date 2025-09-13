@@ -38,6 +38,7 @@ import {
   TypographyP,
   TypographySmall,
 } from "@/components/ui/typography";
+import { useNavigation } from "@/components/navigation-provider";
 
 export default function OperabilitiesPage() {
   const { id: formulario_id } = useParams();
@@ -50,16 +51,23 @@ export default function OperabilitiesPage() {
 
   const accessToken = Cookies.get("access_token");
   const { form, updateFormulario } = useFormWebSocket(
-    formulario_id as string, // Cast to string as useParams() can return string | string[]
+    formulario_id as string,
     accessToken ?? null,
   );
+
+  const { setPageBreadcrumbs } = useNavigation();
 
   useEffect(() => {
     if (form) {
       setTitulo(form.titulo);
       setDescricao(form.descricao);
+      const formTitle = form.titulo.length > 20 ? `${form.titulo.substring(0, 20)}...` : form.titulo;
+      setPageBreadcrumbs([
+        { title: formTitle, url: `/formularios/${formulario_id}` },
+        { title: "Operabilidades" },
+      ]);
     }
-  }, [form]);
+  }, [form, formulario_id, setPageBreadcrumbs]);
 
   useEffect(() => {
     const fetchStatus = async () => {

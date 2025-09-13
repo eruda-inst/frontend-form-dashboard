@@ -63,7 +63,7 @@ export default function LoginPage() {
         throw new Error(errorMessage)
       }
 
-      router.push("/dashboard")
+      router.push("/formularios")
     } catch (err: any) {
       setError(err.message)
     } finally {
