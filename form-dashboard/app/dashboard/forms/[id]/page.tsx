@@ -7,14 +7,12 @@ import { MultiplaEscolhaChart } from "@/components/charts/multipla-escolha-chart
 import { NpsChart } from "@/components/charts/nps-chart"
 import { NumeroChart } from "@/components/charts/numero-chart"
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useRouter }
 from "next/navigation"
 import Cookies from "js-cookie"
-import type { Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket"
-import { useNavigation } from "@/components/navigation-provider"
 import { useMenubar } from "@/components/menubar-context";
 import { MenubarMenuData } from "@/app/types/menubar";
 import {
@@ -35,7 +33,6 @@ import { Loader2 } from "lucide-react"
 export default function FormDetailsPage() {
   const params = useParams()
   const router = useRouter();
-  const { setBreadcrumbs } = useNavigation()
   const { setMenubarData } = useMenubar();
 
   const id = params.id as string
@@ -46,16 +43,6 @@ export default function FormDetailsPage() {
   const { responses } = useResponsesWebSocket(id, access_token);
 
  
-
-  useEffect(() => {
-    if (form) {
-      const breadcrumbs = [
-        { title: "Formulários", url: "/dashboard" },
-        { title: form.titulo },
-      ];
-      setBreadcrumbs(breadcrumbs);
-    }
-  }, [form, setBreadcrumbs]);
 
   useEffect(() => {
     const menubarData: MenubarMenuData[] = [

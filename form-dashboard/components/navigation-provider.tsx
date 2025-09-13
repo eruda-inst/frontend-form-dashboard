@@ -54,61 +54,77 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
   useEffect(() => {
-    const generateBreadcrumbs = async () => {
-      const pathParts = pathname.split("/").filter(part => part && part !== 'dashboard');
+    const generateBreadcrumbsAndTitle = async () => {
+      const pathParts = pathname.split("/").filter(part => part); // e.g. ['dashboard', 'forms', '123']
 
-      if (pathParts.length === 0) {
+      if (pathParts.length < 2) { // Just /dashboard
+        setActiveTitle("Formulários");
         setBreadcrumbs([{ title: "Formulários" }]);
         return;
       }
 
-      const section = pathParts[0];
+      const section = pathParts[1]; // 'forms', 'users', 'groups'
       let sectionTitle = '';
       let sectionUrl = '';
+      let newActiveTitle = '';
 
       switch (section) {
         case 'forms':
           sectionTitle = 'Formulários';
+          newActiveTitle = 'Formulários';
           sectionUrl = '/dashboard/forms';
           break;
         case 'users':
           sectionTitle = 'Usuários';
+          newActiveTitle = 'Usuários';
           sectionUrl = '/dashboard/users';
           break;
         case 'groups':
           sectionTitle = 'Grupos e Permissões';
+          newActiveTitle = 'Grupos e Permissões';
           sectionUrl = '/dashboard/groups';
           break;
         default:
-          sectionTitle = section.charAt(0).toUpperCase() + section.slice(1);
+          // Handle other sections if any
+          const capitalized = section.charAt(0).toUpperCase() + section.slice(1);
+          sectionTitle = capitalized;
+          newActiveTitle = capitalized;
           sectionUrl = `/dashboard/${section}`;
       }
 
+      setActiveTitle(newActiveTitle);
       const newBreadcrumbs: BreadcrumbItem[] = [{ title: sectionTitle, url: sectionUrl }];
 
-      if (section === 'forms' && pathParts.length > 1) {
-        const formId = pathParts[1];
-        let formName = formNamesCache[formId];
-        if (!formName) {
-          const fetchedName = await fetchFormName(formId);
-          if (fetchedName) {
-            formName = fetchedName;
-            setFormNamesCache(prev => ({...prev, [formId]: fetchedName}));
-          }
-        }
+      // Level 2: Form name
+      if (section === 'forms' && pathParts.length > 2) {
+        const formId = pathParts[2];
+        const formName = formNamesCache[formId] || await fetchFormName(formId);
 
         if (formName) {
+          if (!formNamesCache[formId]) {
+            setFormNamesCache(prev => ({...prev, [formId]: formName}));
+          }
+          
           const title = formName.length > 20 ? `${formName.substring(0, 20)}...` : formName;
           newBreadcrumbs.push({ title, url: `/dashboard/forms/${formId}` });
 
-          if (pathParts.length > 2) {
-            const lastPart = pathParts[2];
-            const lastPartTitle = lastPart.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            newBreadcrumbs.push({ title: lastPartTitle });
+          // Level 3: Sub-page (edit-questions, operabilities)
+          if (pathParts.length > 3) {
+            const subPage = pathParts[3];
+            let subPageTitle = '';
+            if (subPage === 'edit-questions') {
+              subPageTitle = 'Questões';
+            } else if (subPage === 'operabilities') {
+              subPageTitle = 'Operabilidades';
+            } else {
+                subPageTitle = subPage.charAt(0).toUpperCase() + subPage.slice(1);
+            }
+            newBreadcrumbs.push({ title: subPageTitle });
           }
         }
       }
-
+      
+      // Make last breadcrumb not a link
       if (newBreadcrumbs.length > 0) {
         newBreadcrumbs[newBreadcrumbs.length - 1].url = undefined;
       }
@@ -116,8 +132,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       setBreadcrumbs(newBreadcrumbs);
     };
 
-    generateBreadcrumbs();
-  }, [pathname, formNamesCache])
+    generateBreadcrumbsAndTitle();
+  }, [pathname])
 
   return (
     <NavigationContext.Provider

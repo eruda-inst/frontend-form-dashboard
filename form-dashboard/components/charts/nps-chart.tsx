@@ -29,7 +29,6 @@ interface NpsChartProps {
 }
 
 export function NpsChart({ data }: NpsChartProps) {
-  console.log("NpsChart data:", data);
   const chartData = data.scoreCounts
     .filter((item) => item.count > 0)
     .map((item) => ({
@@ -37,7 +36,6 @@ export function NpsChart({ data }: NpsChartProps) {
       value: item.count,
     }))
 
-  console.log("NpsChart chartData:", chartData);
 
   const chartConfig: ChartConfig = {
     value: {

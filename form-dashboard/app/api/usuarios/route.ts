@@ -11,7 +11,6 @@ export async function GET(request: Request) {
     }
     
     const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/usuarios`;
-    console.log('Fetching from backend URL:', backendUrl);
     const response = await fetch(backendUrl, {
       headers: {
         'Authorization': `Bearer ${access_token}`,
@@ -20,14 +19,12 @@ export async function GET(request: Request) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.log('Error fetching usuarios:', errorData);
       return NextResponse.json(errorData, { status: response.status });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.log(error)
     return NextResponse.json({ message: 'Internal Server Error' , error: error}, { status: 500 });
   }
 }

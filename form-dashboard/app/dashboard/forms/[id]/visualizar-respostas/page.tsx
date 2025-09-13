@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
-import { useNavigation } from "@/components/navigation-provider"
 import { useDashboard } from "@/components/dashboard-context"
 import { useMenubar } from "@/components/menubar-context";
 import { MenubarMenuData } from "@/app/types/menubar";
@@ -51,7 +50,6 @@ const getAnswerValue = (item?: RespostaItem, pergunta?: Pergunta) => {
 export default function FormDetailsPage() {
   const params = useParams()
   const router = useRouter();
-  const { setBreadcrumbs } = useNavigation()
   const { setMenubarData } = useMenubar();
   const { setUsersInRoom } = useDashboard();
 
@@ -60,7 +58,6 @@ export default function FormDetailsPage() {
 
   const { form, isLoading, error } = useFormWebSocket(id, access_token)
   const { responses, usersInRoom, isLoading: isLoadingResponses, error: responsesError } = useResponsesWebSocket(id, access_token);
-  console.log("Responses in page.tsx:", responses);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedResponse, setSelectedResponse] = useState<Resposta | null>(null);
@@ -69,17 +66,6 @@ export default function FormDetailsPage() {
     setSelectedResponse(response);
     setIsDialogOpen(true);
   };
-
-  useEffect(() => {
-    if (form) {
-      const breadcrumbs = [
-        { title: "Formulários", url: "/dashboard" },
-        { title: form.titulo, url: `/dashboard/forms/${id}` },
-        { title: "Respostas" }
-      ];
-      setBreadcrumbs(breadcrumbs);
-    }
-  }, [form, setBreadcrumbs, id]);
 
   if (isLoading) {
     return (

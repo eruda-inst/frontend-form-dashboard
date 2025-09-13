@@ -19,7 +19,6 @@ import Cookies from "js-cookie"
 import type { Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { AddQuestionDialog } from "@/components/add-question-dialog"
-import { useNavigation } from "@/components/navigation-provider"
 import { useDashboard } from "@/components/dashboard-context"
 import {
   Card,
@@ -150,7 +149,6 @@ const EditableQuestion = ({ pergunta, index, onUpdate }: {
 
 export default function FormDetailsPage() {
   const params = useParams()
-  const { setBreadcrumbs } = useNavigation()
   const { setUsersInRoom } = useDashboard();
   const [pendingDeletion, setPendingDeletion] = useState<string[]>([]);
 

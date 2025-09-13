@@ -121,7 +121,6 @@ export function MultiplaEscolhaChart({ formId }: { formId: string }) {
       questionText: selectedQuestion.texto,
       scoreCounts: chartData.map((d, i) => ({ score: i, count: d.count, optionText: d.option })),
     };
-    console.log("NpsChart data prepared:", npsChartData);
     return (
       <div className="min-h-[300px]">
         <NpsChart data={npsChartData} />

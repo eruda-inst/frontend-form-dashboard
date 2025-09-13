@@ -7,7 +7,7 @@ import GroupsPage from "@/components/pages/groups-page/groups-page"
 import FormsPage from "@/components/pages/forms-page/forms-page"
 
 export default function Page() {
-  const { activeTitle, setBreadcrumbs } = useNavigation()
+  const { activeTitle } = useNavigation()
 
   
 
