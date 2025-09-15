@@ -63,6 +63,13 @@ export default function LoginPage() {
         throw new Error(errorMessage)
       }
 
+      const data = await res.json();
+      
+      // Definição dos cookies com max-age
+      document.cookie = `access_token=${data.access_token}; path=/; max-age=900; SameSite=Lax`;
+      document.cookie = `refresh_token=${data.refresh_token}; path=/; SameSite=Lax`;
+
+
       router.push("/formularios")
     } catch (err: any) {
       setError(err.message)

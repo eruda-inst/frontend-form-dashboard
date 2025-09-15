@@ -74,7 +74,7 @@ export async function middleware(request: NextRequest) {
   console.log(`[MW-LOG] Access Token Present: ${process.env.NEXT_PUBLIC_API_URL}`);
   const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
   const authStatusUrl = `${apiBase}/setup/status`;
-  let grupo_admin_existe = true;
+  let admin_existe = true;
   let autenticado = false;
 
   try {
@@ -85,7 +85,7 @@ export async function middleware(request: NextRequest) {
     });
     if (resp.ok) {
       const j = await resp.json();
-      grupo_admin_existe = !!j?.grupo_admin_existe;
+      admin_existe = !!j?.admin_existe;
       autenticado = !!j?.autenticado && !!accessToken;
     }
   } catch (error) {
@@ -95,7 +95,7 @@ export async function middleware(request: NextRequest) {
   let response: NextResponse;
 
   // REGRA 1: Setup do Admin é prioritário
-  if (!grupo_admin_existe) {
+  if (!admin_existe) {
     console.log("[MW-LOG] Rule 1: Admin group does not exist.");
     response = isSetupPage ? NextResponse.next() : NextResponse.redirect(new URL("/setup-admin", request.url));
   } 

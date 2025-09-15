@@ -12,7 +12,7 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from "@/components/ui/radio-group"
-  
+
 export function LoginForm({
   className,
   ...props
@@ -23,13 +23,13 @@ export function LoginForm({
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
   const [genero, setGenero] = useState("outro")
-  const [imagem, setImagem] = useState("")
+  const [imagemFile, setImagemFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // Dados da empresa
   const [empresaNome, setEmpresaNome] = useState("")
   const [empresaCnpj, setEmpresaCnpj] = useState("")
-  const [empresaLogoUrl, setEmpresaLogoUrl] = useState("")
+  const [empresaLogoFile, setEmpresaLogoFile] = useState<File | null>(null)
 
   useEffect(() => {
     if (error) {
@@ -49,7 +49,6 @@ export function LoginForm({
     setError(null)
 
     try {
-      // Primeiro, obtemos o ID do grupo de administradores
       const grupoRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/grupos/grupo-admin-id`,
         {
@@ -64,27 +63,35 @@ export function LoginForm({
       const grupoData = await grupoRes.json()
       const adminGroupId = grupoData.grupo_id
 
-      // Agora, montamos o payload e enviamos para a rota de setup
+      const formData = new FormData()
+
+      const usuarioData = {
+        nome,
+        username,
+        genero,
+        email,
+        senha,
+        ativo: true,
+        grupo_id: adminGroupId,
+      }
+      formData.append("usuario_data", JSON.stringify(usuarioData))
+
+      const empresaData = {
+        nome: empresaNome,
+        cnpj: empresaCnpj,
+      }
+      formData.append("empresa_data", JSON.stringify(empresaData))
+
+      if (imagemFile) {
+        formData.append("imagem_usuario", imagemFile)
+      }
+      if (empresaLogoFile) {
+        formData.append("logo_empresa", empresaLogoFile)
+      }
+
       const setupRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/setup`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          usuario: {
-            nome,
-            username,
-            genero,
-            imagem,
-            email,
-            ativo: true,
-            senha,
-            grupo_id: adminGroupId,
-          },
-          empresa: {
-            nome: empresaNome,
-            cnpj: empresaCnpj,
-            logo_url: empresaLogoUrl,
-          },
-        }),
+        body: formData,
       })
 
       if (!setupRes.ok) {
@@ -186,13 +193,12 @@ export function LoginForm({
           </RadioGroup>
         </div>
         <div className="grid gap-3">
-          <Label htmlFor="imagem">Link Foto de Perfil</Label>
+          <Label htmlFor="imagem_usuario">Foto de Perfil</Label>
           <Input
-            id="imagem"
-            type="text"
-            placeholder="https://imagem.jpg"
-            value={imagem}
-            onChange={(e) => setImagem(e.target.value)}
+            id="imagem_usuario"
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImagemFile(e.target.files ? e.target.files[0] : null)}
             required
           />
         </div>
@@ -229,13 +235,14 @@ export function LoginForm({
           />
         </div>
         <div className="grid gap-3">
-          <Label htmlFor="empresaLogo">URL do Logo</Label>
+          <Label htmlFor="logo_empresa">Logo da Empresa</Label>
           <Input
-            id="empresaLogo"
-            type="text"
-            placeholder="https://example.com/logo.png"
-            value={empresaLogoUrl}
-            onChange={(e) => setEmpresaLogoUrl(e.target.value)}
+            id="logo_empresa"
+            type="file"
+            accept="image/*"
+            onChange={(e) =>
+              setEmpresaLogoFile(e.target.files ? e.target.files[0] : null)
+            }
           />
         </div>
         <Button type="submit" className="w-full" disabled={isLoading}>
