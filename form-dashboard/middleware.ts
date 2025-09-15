@@ -32,6 +32,7 @@ export async function middleware(request: NextRequest) {
 
   const accessToken = request.cookies.get("access_token")?.value;
   const refreshToken = request.cookies.get("refresh_token")?.value;
+  console.log(`[MW-LOG] Initial accessToken: ${accessToken ? 'present' : 'missing'}, refreshToken: ${refreshToken ? 'present' : 'missing'}`);
 
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
@@ -56,6 +57,7 @@ export async function middleware(request: NextRequest) {
         const data = await refreshResponse.json();
         newAccessToken = data.access_token;
         console.log("[MW-LOG] Token renovado com sucesso.");
+        console.log(`[MW-LOG] New access_token after refresh: ${newAccessToken ? 'present' : 'missing'}`);
       } else {
         console.error("[MW-LOG] Falha ao renovar o token. Limpando cookies e redirecionando para /login.");
         const response = NextResponse.redirect(new URL("/login", request.url));
