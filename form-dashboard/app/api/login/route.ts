@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
     // Opções de cookie reutilizáveis
     const cookieOptions = {
-            // A flag 'secure' será controlada pela variável de ambiente COOKIE_SECURE.
+      // A flag 'secure' será controlada pela variável de ambiente COOKIE_SECURE.
       // Defina como 'true' em produção com HTTPS e 'false' em desenvolvimento ou staging sem HTTPS.
       secure: process.env.COOKIE_SECURE === 'true',
       path: '/',
@@ -79,6 +79,7 @@ export async function POST(request: Request) {
       // O domínio deve começar com um ponto. Ex: .meusite.com
       domain: undefined,
     };
+    console.log(`[LOGIN_API_LOG] COOKIE_SECURE env var: ${process.env.COOKIE_SECURE}, resulting secure flag: ${cookieOptions.secure}`);
 
     // O accessToken precisa ser acessível pelo middleware e também pelo JavaScript
     // do lado do cliente para chamadas de API. Por isso, NÃO é httpOnly.
