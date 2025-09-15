@@ -21,18 +21,19 @@ function Avatar({
   )
 }
 
-function AvatarImage({
-  className,
-  ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+const AvatarImage = React.forwardRef<
+  React.ElementRef<typeof AvatarPrimitive.Image>,
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
+>(({ className, ...props }, ref) => {
   return (
     <AvatarPrimitive.Image
-      data-slot="avatar-image"
-      className={cn("aspect-square size-full", className)}
+      ref={ref}
+      className={cn("aspect-square h-full w-full object-cover", className)}
       {...props}
     />
-  )
-}
+  );
+});
+AvatarImage.displayName = "AvatarImage";
 
 function AvatarFallback({
   className,
