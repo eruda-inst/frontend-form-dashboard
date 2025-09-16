@@ -42,6 +42,7 @@ export default function LoginPage() {
     setError(null)
 
     try {
+      console.log("Attempting login with:", { username, password })
       const res = await fetch(`/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,7 +51,7 @@ export default function LoginPage() {
           password: password,
         }),
       })
-
+      
       if (!res.ok) {
         let errorMessage = "Falha no login"
         try {

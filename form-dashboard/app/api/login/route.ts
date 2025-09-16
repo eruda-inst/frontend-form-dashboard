@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       // exibir informações do usuário na UI sem uma chamada de API.
       cookies()).set("user", JSON.stringify(user), { ...cookieOptions, maxAge: 60 * 60 * 24 * 7, httpOnly: false });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true , refresh_token: refreshToken, access_token: accessToken});
   } catch (error: unknown) {
     let message = "Ocorreu um erro interno."
     if (error instanceof Error) {
