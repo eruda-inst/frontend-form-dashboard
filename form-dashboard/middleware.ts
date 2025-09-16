@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
   let accessToken = request.cookies.get("access_token")?.value ?? "";
   const refreshToken = request.cookies.get("refresh_token")?.value ?? "";
   console.log(`[MW-LOG] Current access_token: ${accessToken}`);
-  console.log(`[MW-LOG] Current refresh_token: ${refreshToken}`);
+  console.log(`[MW-LOG] Current refresh_tok en: ${refreshToken}`);
 
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
   const isSetupPage = pathname === "/setup-admin";
@@ -40,6 +40,9 @@ export async function middleware(request: NextRequest) {
   if (refreshToken && !isAuthPage && !isSetupPage) {
     if (await isTokenExpired(accessToken)) {
       console.log(`[MW-LOG] Token is missing or about to expire. Attempting to refresh.`);
+      const requestUrl = new URL('/api/auth/refresh', request.nextUrl.origin);
+      console.log(`[MW-LOG] Refresh token API URL: ${requestUrl.toString()}`);
+      
       try {
         const refreshResponse = await fetch(new URL('/api/auth/refresh', request.nextUrl.origin), {
           method: 'POST',
