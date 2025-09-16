@@ -100,24 +100,34 @@ export async function middleware(request: NextRequest) {
     console.log("[MW-LOG] Rule 1: Admin group does not exist.");
     response = isSetupPage ? NextResponse.next() : NextResponse.redirect(new URL("/setup-admin", request.url));
   } 
-  // REGRA 2: Usuário autenticado só pode acessar /dashboard
+  // REGRA 2: Usuário autenticado
   else if (autenticado) {
     console.log("[MW-LOG] Rule 2: User is authenticated.");
-    if (pathname.startsWith("/dashboard")) {
+    // Se estiver em uma página de autenticação, redireciona para a página principal
+    if (isAuthPage) {
+        console.log(`[MW-LOG] Authenticated user on auth page, redirecting from '${pathname}' to /formularios.`);
+        response = NextResponse.redirect(new URL("/formularios", request.url));
+    } 
+    // Se estiver na raiz, redireciona para a página principal
+    else if (pathname === '/') {
+        console.log(`[MW-LOG] Authenticated user on root, redirecting to /formularios.`);
+        response = NextResponse.redirect(new URL("/formularios", request.url));
+    }
+    // Para todas as outras rotas, permite o acesso
+    else {
         response = NextResponse.next();
-    } else {
-        console.log(`[MW-LOG] Redirecting to /dashboard from '${pathname}'`);
-        response = NextResponse.redirect(new URL("/dashboard", request.url));
     }
   } 
-  // REGRA 3: Usuário não autenticado só pode acessar /login e /register
+  // REGRA 3: Usuário não autenticado
   else {
     console.log("[MW-LOG] Rule 3: User is not authenticated.");
+    // Para usuários não autenticados, o refresh de token não é possível.
+    // Portanto, podemos retornar a resposta diretamente.
     if (isAuthPage) {
-        response = NextResponse.next();
+      return NextResponse.next();
     } else {
-        console.log(`[MW-LOG] Redirecting to /login from '${pathname}'`);
-        response = NextResponse.redirect(new URL("/login", request.url));
+      console.log(`[MW-LOG] Redirecting to /login from '${pathname}'`);
+      return NextResponse.redirect(new URL("/login", request.url));
     }
   }
 
