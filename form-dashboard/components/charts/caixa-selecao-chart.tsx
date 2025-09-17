@@ -130,12 +130,12 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
             </SelectContent>
           </Select>
         ) : (
-          <CardDescription>{selectedQuestion?.texto}</CardDescription>
+          <CardDescription>{selectedQuestion?.texto} quantidade de opções: {selectedQuestion?.opcoes?.length}</CardDescription>
         )}
       </CardHeader>
       <CardContent>
         
-        <ChartContainer className={`w-full h-80`} config={chartConfig}>
+        <ChartContainer className={`w-full h-${selectedQuestion?.opcoes?.length}0` || `w-full h-60`} config={chartConfig}>
         {/* <ChartContainer className={`w-full h-${selectedQuestion?.opcoes?.length}0`} config={chartConfig}> */}
           <BarChart
             accessibilityLayer
