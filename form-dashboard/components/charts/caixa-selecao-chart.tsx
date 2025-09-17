@@ -128,7 +128,7 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
             </SelectContent>
           </Select>
         ) : (
-          <CardDescription>{selectedQuestion?.texto} quantidade de opções: {selectedQuestion?.opcoes?.length}</CardDescription>
+          <CardDescription>{selectedQuestion?.texto}</CardDescription>
         )}
       </CardHeader>
       <CardContent>
