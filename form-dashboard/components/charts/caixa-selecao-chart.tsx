@@ -135,7 +135,7 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
         <ChartContainer
           config={chartConfig}
           className="w-full"
-          style={{ height: `${(selectedQuestion?.opcoes?.length || 6) * 13}px` }}
+          style={{ height: `${(selectedQuestion?.opcoes?.length || 6) * 40}px` }}
         >
         {/* <ChartContainer className={`w-full h-${selectedQuestion?.opcoes?.length}0`} config={chartConfig}> */}
           <BarChart
