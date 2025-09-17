@@ -14,6 +14,7 @@ interface PerguntaBase {
   obrigatoria: boolean
   texto: string
   ordem_exibicao: number
+  opcoes: { texto: string }[] 
 }
 
 export interface PerguntaTexto extends PerguntaBase {

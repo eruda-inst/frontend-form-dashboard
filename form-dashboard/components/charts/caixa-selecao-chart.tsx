@@ -48,10 +48,10 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
       setSelectedQuestionId(checkboxQuestions[0].id)
     }
   }, [checkboxQuestions, selectedQuestionId])
-
   const selectedQuestion = useMemo(() => {
     return checkboxQuestions.find((q) => q.id === selectedQuestionId)
   }, [checkboxQuestions, selectedQuestionId])
+  
 
   const chartData = useMemo(() => {
     if (!selectedQuestion || !responses) {
@@ -132,7 +132,8 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
         )}
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
+        
+        <ChartContainer className={`w-full h-${selectedQuestion?.opcoes?.length}0`} config={chartConfig}>
           <BarChart
             accessibilityLayer
             data={chartData}
