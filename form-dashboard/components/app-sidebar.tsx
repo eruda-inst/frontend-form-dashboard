@@ -28,7 +28,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Card, CardContent } from "@/components/ui/card"
-import { version } from "../package.json"
+import { versionString, versionNotes } from "../versionNotes"
 // import Separator from "@/components/ui/separator"
 const navMain = [
     {
@@ -93,14 +93,9 @@ const navMain = [
   ]
 const navSecondary = [
     {
-      title: "Support",
+      title: versionString,
       url: "#",
       icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
     },
   ]
 const projects = [
@@ -126,15 +121,10 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     <Sidebar variant="inset" {...props}>
       <SidebarContent>
         <NavMain items={navMain} />
-        {/* <NavProjects projects={projects} /> */}
-        {/* <NavSecondary items={navSecondary} className="mt-auto" /> */}
+        {/* <NavProjects projects={projects}/> */}
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <Card className="bg-primary/10 text-primary-foreground mb-2">
-          <CardContent className=" text-center">
-            <p className=" m-0 text-xs font-semibold">v{version}</p>
-          </CardContent>
-        </Card>
         <NavUser />
       </SidebarFooter>
     </Sidebar>

@@ -1,5 +1,8 @@
 import * as React from "react"
 import { type LucideIcon } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import { versionNotes } from "@/versionNotes"
 
 import {
   SidebarGroup,
@@ -8,6 +11,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog"
 
 export function NavSecondary({
   items,
@@ -24,14 +35,28 @@ export function NavSecondary({
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild size="sm">
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <Dialog>
+              <DialogTrigger>
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild size="sm">
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{item.title}</DialogTitle>
+                </DialogHeader>
+                <div className="prose dark:prose-invert">
+                  <ReactMarkdown>
+                    {versionNotes}
+                  </ReactMarkdown>
+                </div>
+              </DialogContent>
+            </Dialog>
           ))}
         </SidebarMenu>
       </SidebarGroupContent>
