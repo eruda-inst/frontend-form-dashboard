@@ -135,7 +135,8 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
       </CardHeader>
       <CardContent>
         
-        <ChartContainer className={`w-full h-${selectedQuestion?.opcoes?.length}0`} config={chartConfig}>
+        <ChartContainer className={`w-full h-80`} config={chartConfig}>
+        {/* <ChartContainer className={`w-full h-${selectedQuestion?.opcoes?.length}0`} config={chartConfig}> */}
           <BarChart
             accessibilityLayer
             data={chartData}
