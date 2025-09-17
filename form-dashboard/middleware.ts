@@ -42,9 +42,9 @@ export async function middleware(request: NextRequest) {
       console.log(`[MW-LOG] Token is missing or about to expire. Attempting to refresh.`);
       const requestUrl = new URL('/api/auth/refresh', request.nextUrl.origin);
       console.log(`[MW-LOG] Refresh token API URL: ${requestUrl.toString()}`);
-      
+
       try {
-        const refreshResponse = await fetch(new URL('/api/auth/refresh', request.nextUrl.origin), {
+        const refreshResponse = await fetch(new URL("http://localhost:3000/api/auth/refresh"), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh_token: refreshToken }),
