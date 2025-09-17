@@ -107,8 +107,6 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
     return null
   }
 
-
-          console.log("tamanho do array:", selectedQuestion?.opcoes?.length)
   return (
     <Card>
       <CardHeader className="items-center pb-4">
@@ -134,8 +132,11 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
         )}
       </CardHeader>
       <CardContent>
-        
-        <ChartContainer className={`w-full h-${selectedQuestion?.opcoes?.length}0` || `w-full h-60`} config={chartConfig}>
+        <ChartContainer
+          config={chartConfig}
+          className="w-full"
+          style={{ height: `${(selectedQuestion?.opcoes?.length || 6) * 13}px` }}
+        >
         {/* <ChartContainer className={`w-full h-${selectedQuestion?.opcoes?.length}0`} config={chartConfig}> */}
           <BarChart
             accessibilityLayer
