@@ -107,6 +107,8 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
     return null
   }
 
+
+          console.log("tamanho do array:", selectedQuestion?.opcoes?.length)
   return (
     <Card>
       <CardHeader className="items-center pb-4">
