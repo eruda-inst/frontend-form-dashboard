@@ -11,10 +11,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-
+import { Separator } from "@/components/ui/separator"
 import { useEffect, useState, useRef } from "react";
-import { useParams }
-from "next/navigation"
+import { useParams } from "next/navigation"
 import Cookies from "js-cookie"
 import type { Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
@@ -23,7 +22,6 @@ import { useDashboard } from "@/components/dashboard-context"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -33,8 +31,28 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Button } from "@/components/ui/button"
-import { Loader2, Trash } from "lucide-react"
+import { GripVertical, Loader2, Trash } from "lucide-react"
 import { useNavigation } from "@/components/navigation-provider";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { motion } from 'framer-motion';
 
 // Componente auxiliar para renderizar cada tipo de pergunta
 const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
@@ -148,31 +166,161 @@ const EditableQuestion = ({ pergunta, index, onUpdate }: {
   );
 };
 
+const QuestionCard = ({ pergunta, index }: { pergunta: Pergunta; index: number }) => (
+  <div className="flex items-center w-full">
+    <div className="cursor-grab p-2">
+      <GripVertical className="h-5 w-5 text-muted-foreground" />
+    </div>
+    <Card className="flex-grow">
+      <CardHeader>
+        <CardTitle className="text-lg font-medium break-words">
+          {index + 1}. {pergunta.texto}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <RenderQuestion pergunta={pergunta} />
+      </CardContent>
+    </Card>
+  </div>
+);
+
+
+function SortableQuestion({ pergunta, index, onUpdate, handleDelete, pendingDeletion, deleteConfirmation, setDeleteConfirmation, isDragging, droppedId }: {
+  pergunta: Pergunta;
+  index: number;
+  onUpdate: (id: string, texto: string) => void;
+  handleDelete: (id: string) => void;
+  pendingDeletion: string[];
+  deleteConfirmation: string;
+  setDeleteConfirmation: (value: string) => void;
+  isDragging: boolean;
+  droppedId: string | null;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: pergunta.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? 'none' : transition,
+  };
+
+  const variants = {
+    dragging: { opacity: 0, transition: { duration: 0 } },
+    normal: { opacity: 1 },
+  };
+
+  return (
+    <motion.div 
+      layout={pergunta.id !== droppedId}
+      ref={setNodeRef} 
+      style={style} 
+      variants={variants}
+      animate={isDragging ? "dragging" : "normal"}
+      className="flex items-center"
+    >
+      <div {...attributes} {...listeners} className="cursor-grab p-2">
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
+      </div>
+      <Card
+        className={`z-50 group relative transition-all duration-500 flex-grow ${pendingDeletion.includes(pergunta.id) ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
+      >
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="cursor-pointer absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Essa ação não pode ser desfeita. Isso irá deletar permanentemente esta pergunta do formulário.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirmation">
+                Para confirmar, digite <strong>deletar</strong> abaixo:
+              </Label>
+              <Input
+                id="delete-confirmation"
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => handleDelete(pergunta.id)}>Deletar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <CardHeader>
+          <div className="w-full overflow-hidden">
+            <EditableQuestion
+              pergunta={pergunta}
+              index={index}
+              onUpdate={onUpdate}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <RenderQuestion pergunta={pergunta} />
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+
 export default function FormDetailsPage() {
   const params = useParams()
-  const { setUsersInRoom } = useDashboard();
   const [pendingDeletion, setPendingDeletion] = useState<string[]>([]);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string>("");
+  const [questions, setQuestions] = useState<Pergunta[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [droppedId, setDroppedId] = useState<string | null>(null);
 
   const id = params.id as string
   const access_token = Cookies.get("access_token") || null
 
-
   const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token)
-
   const { setPageBreadcrumbs } = useNavigation();
+
+  const activeQuestion = questions.find((q) => q.id === activeId);
 
   useEffect(() => {
     if (form) {
+      const sortedQuestions = [...form.perguntas].sort((a, b) => a.ordem_exibicao - b.ordem_exibicao);
+      setQuestions(sortedQuestions);
       const formTitle = form.titulo.length > 20 ? `${form.titulo.substring(0, 20)}...` : form.titulo;
       setPageBreadcrumbs([
         { title: formTitle, url: `/formularios/${id}` },
-        { title: "Questões" },
+        { title: "Gestão de Questões" },
       ]);
     }
   }, [form, id, setPageBreadcrumbs]);
 
+  useEffect(() => {
+    if (droppedId) {
+      const timer = setTimeout(() => setDroppedId(null), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [droppedId]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleUpdateQuestion = (questionId: string, newText: string) => {
     if (form) {
@@ -183,9 +331,23 @@ export default function FormDetailsPage() {
             {
               id: questionId,
               texto: newText,
-              ordem_exibicao: form.perguntas.find(p => p.id === questionId)?.ordem_exibicao ?? 0
             },
           ],
+        },
+      };
+      sendMessage(message);
+    }
+  };
+
+  const handleUpdateQuestionOrder = (reorderedQuestions: Pergunta[]) => {
+    if (form) {
+      const message = {
+        tipo: "update_formulario",
+        conteudo: {
+          perguntas_editadas: reorderedQuestions.map((q, index) => ({
+            id: q.id,
+            ordem_exibicao: index,
+          })),
         },
       };
       sendMessage(message);
@@ -208,7 +370,25 @@ export default function FormDetailsPage() {
     }, 500);
   }
 
-  
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setActiveId(null);
+    setDroppedId(active.id as string);
+
+    if (over && active.id !== over.id) {
+      setQuestions((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        const reorderedItems = arrayMove(items, oldIndex, newIndex);
+        handleUpdateQuestionOrder(reorderedItems);
+        return reorderedItems;
+      });
+    }
+  }
 
   if (isLoading) {
     return (
@@ -228,75 +408,48 @@ export default function FormDetailsPage() {
   }
 
   return (
-    <div className="w-full grid gap-8 px-4 sm:px-6 lg:px-8">
-      <Card className="p-0">
-        <CardHeader className="border-b bg-muted/30 p-6">
-          <CardTitle className="text-2xl">{form.titulo}</CardTitle>
-          <CardDescription className="text-base">
-            {form.descricao}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <p className="text-sm text-muted-foreground">
-            Criado em: {new Date(form.criado_em).toLocaleDateString("pt-BR")}
-          </p>
-        </CardContent>
-      </Card>
+    <div className="w-full mt-8 grid gap-8 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col">
+        <h1 className="text-4xl tracking-tight">
+          Gestão das questões</h1>
+        <p className="text-lg text-muted-foreground mt-2 mb-2">
+          {form.titulo}
+        </p>
+        <Separator />
+      </div>
 
-      {form.perguntas.length > 0 ? (
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {form.perguntas.map((pergunta, index) => (
-            <Card 
-              key={pergunta.id} 
-              className={`group relative transition-all duration-500 ${pendingDeletion.includes(pergunta.id) ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-              <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="cursor-pointer absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Essa ação não pode ser desfeita. Isso irá deletar permanentemente esta pergunta do formulário.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="space-y-2">
-                  <Label htmlFor="delete-confirmation">
-                    Para confirmar, digite <strong>deletar</strong> abaixo:
-                  </Label>
-                  <Input
-                    id="delete-confirmation"
-                    value={deleteConfirmation}
-                    onChange={(e) => setDeleteConfirmation(e.target.value)}
-                  />
-                </div>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleDeleteQuestion(pergunta.id)}>Deletar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-              <CardHeader>
-                <div className="w-full overflow-hidden">
-                  <EditableQuestion
-                    pergunta={pergunta}
-                    index={index}
-                    onUpdate={handleUpdateQuestion}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <RenderQuestion pergunta={pergunta} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {questions.length > 0 ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={questions.map(q => q.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="flex-col space-y-4">
+              {questions.map((pergunta, index) => (
+                <SortableQuestion
+                  key={pergunta.id}
+                  pergunta={pergunta}
+                  index={index}
+                  onUpdate={handleUpdateQuestion}
+                  handleDelete={handleDeleteQuestion}
+                  pendingDeletion={pendingDeletion}
+                  deleteConfirmation={deleteConfirmation}
+                  setDeleteConfirmation={setDeleteConfirmation}
+                  isDragging={activeId === pergunta.id}
+                  droppedId={droppedId}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeQuestion ? <QuestionCard pergunta={activeQuestion} index={questions.findIndex(q => q.id === activeId)} /> : null}
+          </DragOverlay>
+        </DndContext>
       ) : (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
@@ -304,7 +457,7 @@ export default function FormDetailsPage() {
           </CardContent>
         </Card>
       )}
-      <AddQuestionDialog formId={form.id} onQuestionAdded={() => {}} />
+      <AddQuestionDialog formId={form.id} onQuestionAdded={() => { }} />
     </div>
   )
 }

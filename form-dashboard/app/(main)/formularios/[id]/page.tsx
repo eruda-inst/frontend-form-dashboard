@@ -59,7 +59,7 @@ export default function FormDetailsPage() {
         trigger: "Configurações",
         content: [
           {
-            label: "Editar questões",
+            label: "Gestão de Questões",
             onClick: () => router.push(`/formularios/${id}/edit-questions`),
           },
           {
@@ -151,8 +151,8 @@ export default function FormDetailsPage() {
   return (
     <>
       <div className="w-full border-b py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold tracking-tight">{form.titulo}</h1>
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-4xl tracking-tight">{form.titulo}</h1>
           <p className="text-lg text-muted-foreground mt-2">{form.descricao}</p>
           <p className="text-sm text-muted-foreground">
               Criado em: {new Date(form.criado_em).toLocaleDateString("pt-BR")}
