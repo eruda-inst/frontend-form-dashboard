@@ -174,7 +174,7 @@ const QuestionCard = ({ pergunta, index }: { pergunta: Pergunta; index: number }
     <Card className="flex-grow">
       <CardHeader>
         <CardTitle className="text-lg font-medium break-words">
-          {index + 1}. {pergunta.texto}
+          {pergunta.texto}
         </CardTitle>
       </CardHeader>
       <CardContent>
