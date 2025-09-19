@@ -1,5 +1,5 @@
 "use client";
-
+import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
@@ -193,13 +193,12 @@ export default function OperabilitiesPage() {
   const formUrl = `${process.env.NEXT_PUBLIC_FORM_URL}/form/${slug}`;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <TypographyH1 className="text-left">Configurações de Operabilidade</TypographyH1>
-        <TypographyP className="text-muted-foreground !mt-2">
-          Gerencie as configurações de operabilidade do seu formulário.
-        </TypographyP>
+    <div className="space-y-4">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-4xl tracking-tight">
+          Configurações de operabilidade</h1>
       </div>
+        <Separator />
 
       <Card>
         <CardHeader>
@@ -280,7 +279,7 @@ export default function OperabilitiesPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-destructive">
+      <Card className="border-destructive bg-red-400/20">
         <CardHeader>
           <CardTitle>Zona de Perigo</CardTitle>
           <CardDescription>
