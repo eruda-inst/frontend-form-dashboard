@@ -2,7 +2,7 @@ import { version } from "./package.json"
 
 export const versionString = `v${version} Alpha`
 export const versionNotes = `
-### 18 de Setembro de 2025
+### 19 de Setembro de 2025
 
 ## Melhorias
 - Os títulos das páginas de editar questões e a página principal estão no mesmo padrão visual.
@@ -12,4 +12,5 @@ export const versionNotes = `
 
 ## Adições
 - Agora é possível alterar a ordem das questões no formulário.
+- Menubar adicionado em todas as telas dentro de um formulário, facilitando a navegação entre configurações e respostas.
 `
