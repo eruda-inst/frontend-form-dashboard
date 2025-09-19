@@ -51,12 +51,49 @@ const getAnswerValue = (item?: RespostaItem, pergunta?: Pergunta) => {
 export default function FormDetailsPage() {
   const params = useParams()
   const router = useRouter();
-  const { setMenubarData } = useMenubar();
   const { setUsersInRoom } = useDashboard();
   const { setPageBreadcrumbs } = useNavigation();
-
+  
   const id = params.id as string
   const access_token = Cookies.get("access_token") || null
+  
+  const { setMenubarData } = useMenubar();
+   useEffect(() => {
+  const menubarData: MenubarMenuData[] = [
+    {
+      trigger: "Configurações",
+      content: [
+        {
+          label: "Gestão de Questões",
+          onClick: () => router.push(`/formularios/${id}/edit-questions`),
+        },
+        {
+          label: "Operabilidades",
+          onClick: () => router.push(`/formularios/${id}/operabilities`),
+        },
+      ],
+    },
+    {
+      trigger: "Respostas",
+      content: [
+        {
+          label: "Visualizar",
+          onClick: () => router.push(`/formularios/${id}/visualizar-respostas`),
+        },
+        {
+          label: "Exportar",
+          onClick: () => router.push(`/formularios/${id}/export`),
+        },
+      ],
+    },
+  ];
+  setMenubarData(menubarData);
+
+  return () => {
+    setMenubarData([]); // Clear menubar data when component unmounts
+  };
+}, [id, router, setMenubarData]);
+
 
   const { form, isLoading, error } = useFormWebSocket(id, access_token)
   const { responses, usersInRoom, isLoading: isLoadingResponses, error: responsesError } = useResponsesWebSocket(id, access_token);

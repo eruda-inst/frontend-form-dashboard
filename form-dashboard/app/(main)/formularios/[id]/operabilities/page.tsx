@@ -5,6 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
 
+import { useMenubar } from "@/components/menubar-context";
+import { MenubarMenuData } from "@/app/types/menubar";
+
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -47,7 +50,48 @@ export default function OperabilitiesPage() {
   const [slug, setSlug] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [titulo, setTitulo] = useState("");
+  const [originalTitulo, setOriginalTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [originalDescricao, setOriginalDescricao] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
+
+
+    const { setMenubarData } = useMenubar();
+     useEffect(() => {
+    const menubarData: MenubarMenuData[] = [
+      {
+        trigger: "Configurações",
+        content: [
+          {
+            label: "Gestão de Questões",
+            onClick: () => router.push(`/formularios/${formulario_id}/edit-questions`),
+          },
+          {
+            label: "Operabilidades",
+            onClick: () => router.push(`/formularios/${formulario_id}/operabilities`),
+          },
+        ],
+      },
+      {
+        trigger: "Respostas",
+        content: [
+          {
+            label: "Visualizar",
+            onClick: () => router.push(`/formularios/${formulario_id}/visualizar-respostas`),
+          },
+          {
+            label: "Exportar",
+            onClick: () => router.push(`/formularios/${formulario_id}/export`),
+          },
+        ],
+      },
+    ];
+    setMenubarData(menubarData);
+
+    return () => {
+      setMenubarData([]); // Clear menubar data when component unmounts
+    };
+  }, [formulario_id, router, setMenubarData]);
 
   const accessToken = Cookies.get("access_token");
   const { form, updateFormulario } = useFormWebSocket(
@@ -60,8 +104,13 @@ export default function OperabilitiesPage() {
   useEffect(() => {
     if (form) {
       setTitulo(form.titulo);
+      setOriginalTitulo(form.titulo);
       setDescricao(form.descricao);
-      const formTitle = form.titulo.length > 20 ? `${form.titulo.substring(0, 20)}...` : form.titulo;
+      setOriginalDescricao(form.descricao);
+      const formTitle =
+        form.titulo.length > 20
+          ? `${form.titulo.substring(0, 20)}...`
+          : form.titulo;
       setPageBreadcrumbs([
         { title: formTitle, url: `/formularios/${formulario_id}` },
         { title: "Operabilidades" },
@@ -186,6 +235,9 @@ export default function OperabilitiesPage() {
   const handleUpdateForm = () => {
     if (updateFormulario) {
       updateFormulario(titulo, descricao);
+      setOriginalTitulo(titulo);
+      setOriginalDescricao(descricao);
+      setHasChanges(false);
       toast.success("Formulário atualizado com sucesso!");
     }
   };
@@ -194,11 +246,11 @@ export default function OperabilitiesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto pt-6 px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl tracking-tight">
           Configurações de operabilidade</h1>
       </div>
-        <Separator />
+        <Separator/>
 
       <Card>
         <CardHeader>
@@ -213,7 +265,13 @@ export default function OperabilitiesPage() {
             <Input
               id="form-title"
               value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
+              onChange={(e) => {
+                setTitulo(e.target.value);
+                setHasChanges(
+                  e.target.value !== originalTitulo ||
+                    descricao !== originalDescricao,
+                );
+              }}
             />
           </div>
           <div className="space-y-2">
@@ -221,12 +279,22 @@ export default function OperabilitiesPage() {
             <Textarea
               id="form-description"
               value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
+              onChange={(e) => {
+                setDescricao(e.target.value);
+                setHasChanges(
+                  titulo !== originalTitulo ||
+                    e.target.value !== originalDescricao,
+                );
+              }}
             />
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleUpdateForm}>Salvar Alterações</Button>
+          {hasChanges && (
+            <Button className="w-full" onClick={handleUpdateForm}>
+              Salvar Alterações
+            </Button>
+          )}
         </CardFooter>
       </Card>
 

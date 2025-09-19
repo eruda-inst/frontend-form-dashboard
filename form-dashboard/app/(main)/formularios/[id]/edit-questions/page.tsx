@@ -1,5 +1,8 @@
 "use client"
 
+import { useMenubar } from "@/components/menubar-context";
+import { MenubarMenuData } from "@/app/types/menubar";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Separator } from "@/components/ui/separator"
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 import type { Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
@@ -287,8 +290,47 @@ export default function FormDetailsPage() {
   const [questions, setQuestions] = useState<Pergunta[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [droppedId, setDroppedId] = useState<string | null>(null);
-
+  
+  const router = useRouter();
   const id = params.id as string
+
+      const { setMenubarData } = useMenubar();
+     useEffect(() => {
+    const menubarData: MenubarMenuData[] = [
+      {
+        trigger: "Configurações",
+        content: [
+          {
+            label: "Gestão de Questões",
+            onClick: () => router.push(`/formularios/${id}/edit-questions`),
+          },
+          {
+            label: "Operabilidades",
+            onClick: () => router.push(`/formularios/${id}/operabilities`),
+          },
+        ],
+      },
+      {
+        trigger: "Respostas",
+        content: [
+          {
+            label: "Visualizar",
+            onClick: () => router.push(`/formularios/${id}/visualizar-respostas`),
+          },
+          {
+            label: "Exportar",
+            onClick: () => router.push(`/formularios/${id}/export`),
+          },
+        ],
+      },
+    ];
+    setMenubarData(menubarData);
+
+    return () => {
+      setMenubarData([]); // Clear menubar data when component unmounts
+    };
+  }, [id, router, setMenubarData]);
+
   const access_token = Cookies.get("access_token") || null
 
   const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token)
