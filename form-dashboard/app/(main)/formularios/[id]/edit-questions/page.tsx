@@ -159,7 +159,7 @@ const EditableQuestion = ({ pergunta, index, onUpdate }: {
         />
       ) : (
         <CardTitle className="text-lg font-medium break-words">
-          {index + 1}. {pergunta.texto}
+          {pergunta.texto}
         </CardTitle>
       )}
     </div>
