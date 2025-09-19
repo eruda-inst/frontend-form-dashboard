@@ -4,13 +4,6 @@ export const versionString = `v${version} Alpha`
 export const versionNotes = `
 ### 19 de Setembro de 2025
 
-## Melhorias
-- Os títulos das páginas de editar questões e a página principal estão no mesmo padrão visual.
-
 ## Moidificações Gerais
-- O título "Editar questões" foi alterado para "Gestão de Questões" para melhor refletir a funcionalidade da página.
-
-## Adições
-- Agora é possível alterar a ordem das questões no formulário.
-- Menubar adicionado em todas as telas dentro de um formulário, facilitando a navegação entre configurações e respostas.
+- Adicionando nova logo no projeto e mudando nome de Curiozo para Candol.
 `

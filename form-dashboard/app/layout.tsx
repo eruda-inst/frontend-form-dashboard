@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Curiozo",
+  title: "Candol",
   description: "Pesquisas e formulários descomplicados.",
 };
 

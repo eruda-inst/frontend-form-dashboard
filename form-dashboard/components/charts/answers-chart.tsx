@@ -31,7 +31,7 @@ import { Resposta } from "@/app/types/responses"
 const chartConfig = {
   respostas: {
     label: "Respostas",
-    color: "rgb(59 130 246)",
+    color: "rgb(234 179 8)",
   },
 } satisfies ChartConfig
 

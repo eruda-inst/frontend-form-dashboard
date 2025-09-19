@@ -1,4 +1,8 @@
 "use client"
+
+import Image from "next/image"
+import { useTheme } from "next-themes"
+import { useState, useEffect } from "react"
 import {
   BookOpen,
   Bot,
@@ -117,8 +121,26 @@ const projects = [
   ]
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <Sidebar variant="inset" {...props}>
+      <SidebarHeader>
+        {mounted && (
+          <Image 
+            src={`/logo-candol-${resolvedTheme === "dark" ? "white" : "black"}.png`}
+            alt="Logo Candol"
+            width={150}
+            height={40}
+            className="mx-2 my-4"
+          />
+        )}
+      </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
         {/* <NavProjects projects={projects}/> */}
