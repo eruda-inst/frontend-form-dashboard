@@ -35,9 +35,9 @@ export function NavSecondary({
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
-            <Dialog>
+            <Dialog key={item.title}>
               <DialogTrigger>
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild size="sm">
                     <a href={item.url}>
                       <item.icon />

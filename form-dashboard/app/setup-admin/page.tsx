@@ -1,6 +1,7 @@
 import { GalleryVerticalEnd } from "lucide-react"
 import { Smile } from "lucide-react"
 import { LoginForm } from "@/components/login-form"
+import Image from "next/image"
 
 export default function LoginPage() {
   return (
@@ -21,9 +22,10 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="bg-muted relative hidden lg:block">
-        <img
+        <Image
           src="https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg"
           alt="Image"
+          fill
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.8] "
         />
       </div>

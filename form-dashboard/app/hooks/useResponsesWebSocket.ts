@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Resposta } from '@/app/types/responses';
 import { User } from '@/app/types/user';
 
@@ -11,7 +11,7 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const connect = () => {
+  const connect = useCallback(() => {
     console.log('Attempting to connect WebSocket...');
     if (!formId || !accessToken) {
       console.error('Form ID or access token is missing.');
@@ -89,7 +89,7 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
         }
       }
     };
-  };
+  }, [formId, accessToken]);
 
   useEffect(() => {
     console.log('useEffect triggered for WebSocket connection.');
@@ -105,7 +105,7 @@ export const useResponsesWebSocket = (formId: string, accessToken: string | null
         ws.current.close();
       }
     };
-  }, [formId, accessToken]);
+  }, [connect]);
 
   return { responses, usersInRoom, isLoading, error };
 };
