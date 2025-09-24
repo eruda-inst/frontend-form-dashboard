@@ -308,6 +308,10 @@ export default function FormDetailsPage() {
             label: "Operabilidades",
             onClick: () => router.push(`/formularios/${id}/operabilities`),
           },
+          {
+            label: "Permissões",
+            onClick: () => router.push(`/formularios/${id}/permissions`),
+          },
         ],
       },
       {

@@ -70,6 +70,10 @@ export default function OperabilitiesPage() {
             label: "Operabilidades",
             onClick: () => router.push(`/formularios/${formulario_id}/operabilities`),
           },
+          {
+            label: "Permissões",
+            onClick: () => router.push(`/formularios/${formulario_id}/permissions`),
+          },
         ],
       },
       {
