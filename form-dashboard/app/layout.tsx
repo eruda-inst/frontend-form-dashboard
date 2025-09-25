@@ -17,8 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Candol",
-  description: "Pesquisas e formulários descomplicados.",
-};
+  description: "Pesquisas e formulários descomplicados.",};
 
 export default function RootLayout({
   children,
@@ -27,6 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/Icon Light theme.png" media="(prefers-color-scheme: light)" sizes="any" />
+        <link rel="icon" href="/Icon Dark theme.png" media="(prefers-color-scheme: dark)" sizes="any" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-sidebar`}
       >
