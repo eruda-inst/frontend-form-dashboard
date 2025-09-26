@@ -27,8 +27,8 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/Icon Light theme.png" media="(prefers-color-scheme: light)" sizes="any" />
-        <link rel="icon" href="/Icon Dark theme.png" media="(prefers-color-scheme: dark)" sizes="any" />
+        <link rel="icon" href="/favicon.png" sizes="any" />
+       
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-sidebar`}
