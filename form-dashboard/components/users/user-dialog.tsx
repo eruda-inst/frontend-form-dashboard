@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
@@ -69,7 +68,7 @@ export const UserDialog = ({
   setDeleteConfirmation: (confirmation: string) => void
   handleDeactivateUser: (user: User) => void
 }) => (
-  <DialogContent className="overflow-hidden bg-transparent">
+  <>
     <div className=" bg-transparent  backdrop-blur-2xl -z-1 w-full h-16 absolute"></div>
     <div className=" bg-card opacity-60  backdrop-blur-2xl -z-1 w-full h-16 absolute"></div>
     <div
@@ -164,5 +163,5 @@ export const UserDialog = ({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  </DialogContent>
+  </>
 )
