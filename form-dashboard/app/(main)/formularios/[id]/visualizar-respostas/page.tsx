@@ -161,21 +161,33 @@ export default function FormDetailsPage() {
         ) : responses.length === 0 ? (
           <p>Nenhuma resposta foi encontrada para este formulário.</p>
         ) : (
-          <Table className="w-full">
-            <TableCaption>Total de {responses.length} respostas.</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data de Envio</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {responses.map((response) => (
-                <TableRow key={response.id} onClick={() => handleRowClick(response)} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell>{new Date(response.criado_em).toLocaleString("pt-BR")}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableCaption>Total de {responses.length} respostas.</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px]">Data de Envio</TableHead>
+                  {form.perguntas.map((pergunta) => (
+                    <TableHead key={pergunta.id} className="min-w-[200px]">{pergunta.texto}</TableHead>
+                  ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {responses.map((response) => (
+                  <TableRow key={response.id} onClick={() => handleRowClick(response)} className="cursor-pointer hover:bg-muted/50">
+                    <TableCell className="font-medium w-[200px]">{new Date(response.criado_em).toLocaleString("pt-BR")}</TableCell>
+                    {form.perguntas.map((pergunta) => {
+                      const items = response.itens.filter(item => item.pergunta_id === pergunta.id);
+                      const answerValues = items.map(item => getAnswerValue(item, pergunta)).join(', ');
+                      return (
+                        <TableCell key={pergunta.id} className="min-w-[200px]">{answerValues || "N/A"}</TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 
