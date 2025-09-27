@@ -1,6 +1,7 @@
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import React from "react"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 // Definindo o tipo para um usuário, baseado na sua resposta da API
 type User = {
@@ -26,9 +27,9 @@ const getInitials = (name: string) => {
   return `${firstInitial}${lastInitial}`.toUpperCase()
 }
 
-export const UserCard = ({ user }: { user: User }) => (
-  <div>
+export const UserCard = React.forwardRef<HTMLDivElement, { user: User }>(({ user }, ref) => (
   <Card
+    ref={ref}
     key={user.id}
     style={{ backgroundImage: `url(${user.imagem})` }}
     className="border-2 border-secondary  backdrop-blur-sm overflow-hidden p-0 bg-cover cursor-pointer flex flex-col transition-transform duration-300 ease-in-out hover:scale-101"
@@ -55,5 +56,5 @@ export const UserCard = ({ user }: { user: User }) => (
       </div>
     </CardHeader>
   </Card>
-  </div>
-)
+))
+UserCard.displayName = "UserCard"

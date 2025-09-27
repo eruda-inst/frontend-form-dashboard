@@ -50,7 +50,7 @@ export const UsersList = ({
   setDeleteConfirmation: (confirmation: string) => void
   handleDeactivateUser: (user: User) => void
 }) => (
-  <div className="flex flex-col auto-rows-min gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
+  <div className="grid auto-rows-min gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
     {users.map((user) => {
       if (!user.ativo) {
         return null
@@ -66,32 +66,32 @@ export const UsersList = ({
         >
           <DialogTrigger asChild>
             <Card
-    key={user.id}
-    style={{ backgroundImage: `url(${user.imagem})` }}
-    className="border-2 border-secondary  backdrop-blur-sm overflow-hidden p-0 bg-cover cursor-pointer flex flex-col transition-transform duration-300 ease-in-out hover:scale-101"
-  >
-    <div className=" bg-transparent  backdrop-blur-2xl z-2 w-full h-full absolute"></div>
-    <div className="bg-card opacity-60 z-1 w-full h-full absolute"></div>
-    <CardHeader className="z-3 p-6 flex flex-col items-left  text-center">
-      <div className="flex">
-        <Avatar className="mb-2 h-20 w-20">
-          <AvatarImage src={user.imagem} alt={user.nome} />
-          <AvatarFallback>{getInitials(user.nome)}</AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col gap-2 h-full justify-center pl-6 items-left text-left">
-          <CardTitle>
-            {user.nome}{" "}
-            <span className="opacity-70 text-accent-foreground">
-              @{user.username}
-            </span>
-          </CardTitle>
-          <CardDescription>
-            <Badge variant="default">{user.grupo.nome}</Badge>
-          </CardDescription>
-        </div>
-      </div>
-    </CardHeader>
-  </Card>
+                key={user.id}
+                style={{ backgroundImage: `url(${user.imagem})` }}
+                className="border-2 border-secondary  backdrop-blur-sm overflow-hidden p-0 bg-cover cursor-pointer flex flex-col transition-transform duration-300 ease-in-out hover:scale-101"
+              >
+                <div className=" bg-transparent  backdrop-blur-2xl z-2 w-full h-full absolute"></div>
+                <div className="bg-card opacity-60 z-1 w-full h-full absolute"></div>
+                <CardHeader className="z-3 p-6 flex flex-col items-left  text-center">
+                  <div className="flex">
+                    <Avatar className="mb-2 h-20 w-20">
+                      <AvatarImage src={user.imagem} alt={user.nome} />
+                      <AvatarFallback>{getInitials(user.nome)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col gap-2 h-full justify-center pl-6 items-left text-left">
+                      <CardTitle>
+                        {user.nome}{" "}
+                        <span className="opacity-70 text-accent-foreground">
+                          @{user.username}
+                        </span>
+                      </CardTitle>
+                      <CardDescription>
+                        <Badge variant="default">{user.grupo.nome}</Badge>
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
           </DialogTrigger>
           <DialogContent>
             <UserDialog

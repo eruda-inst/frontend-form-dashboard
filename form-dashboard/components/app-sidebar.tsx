@@ -16,6 +16,7 @@ import {
   ClipboardPenLine,
   LayoutDashboard,
   Users,
+  Cable,
   UserCog
 } from "lucide-react"
 import type { User } from "@/app/types/user"
@@ -49,6 +50,11 @@ const navMain = [
       title: "Grupos e Permissões",
       url: "/grupos-e-permissoes",
       icon: UserCog,
+    },
+    {
+      title: "Integrações",
+      url: "/integracoes",
+      icon: Cable,
     }
     // {
     //   title: "Models",
