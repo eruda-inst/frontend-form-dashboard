@@ -17,15 +17,15 @@ export default function MainLayout({
   children: React.ReactNode
 }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-screen overflow-hidden">
         <MenubarProvider>
           <DashboardProvider>
             <NavigationProvider>
               <UserFetcher>
                 <AppSidebar />
-                <SidebarInset>
-                  <DashboardHeader />
-                  <main className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</main>
+                <SidebarInset className="overflow-scroll">
+                  <DashboardHeader style={{backdropFilter: "blur(20px)", background: "linear-gradient(to bottom, rgba(9, 9, 11) 50%, rgba(0, 0, 0, 0))"}} className="sticky top-0 z-10 "/>
+                  <main className="flex flex-1 h-full flex-col gap-4 p-4 pt-0">{children}</main>
                 </SidebarInset>
               </UserFetcher>
             </NavigationProvider>

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useNavigation } from "@/components/navigation-provider"
 import {
   Card,
   CardContent,
@@ -39,10 +40,14 @@ const initialIntegrations = [
 
 export default function IntegracoesPage() {
   const router = useRouter()
+  const { setPageBreadcrumbs } = useNavigation()
   const [integrations, setIntegrations] = useState(initialIntegrations)
 
   const handleIntegrationCreated = (newIntegration: any) => {
-    setIntegrations([...integrations, { ...newIntegration, id: integrations.length + 1, criado_em: new Date().toISOString() }])
+    setIntegrations([
+      ...integrations,
+      { ...newIntegration, id: integrations.length + 1, criado_em: new Date().toISOString() },
+    ])
   }
 
   return (

@@ -28,12 +28,14 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { cn } from "@/lib/utils"
 
 // Define the interfaces for the menubar data structure
 
 
 interface DashboardHeaderProps {
-  // menubarData?: MenubarMenuData[]; // Removed as it will be consumed from context
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 // Helper function to render menubar items recursively
@@ -69,7 +71,7 @@ const renderMenubarItems = (items: MenubarContentItem[]) => {
   });
 };
 
-export function DashboardHeader({}: DashboardHeaderProps) {
+export function DashboardHeader({ className, style }: DashboardHeaderProps) {
   const { breadcrumbs } = useNavigation()
   const { menubarData } = useMenubar();
   const { usersInRoom } = useDashboard();
@@ -88,7 +90,10 @@ export function DashboardHeader({}: DashboardHeaderProps) {
   
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 justify-between pr-3">
+    <header
+      style={style}
+      className={cn("flex h-16 shrink-0 items-center gap-2 justify-between pr-3", className)}
+    >
       <div className="flex items-center gap-2 px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator

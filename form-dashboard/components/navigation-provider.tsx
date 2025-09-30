@@ -85,6 +85,11 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
           newActiveTitle = 'Grupos e Permissoes';
           sectionUrl = '/grupos-e-permissoes';
           break;
+        case 'integracoes':
+          sectionTitle = 'Integrações';
+          newActiveTitle = 'Integrações';
+          sectionUrl = '/integracoes';
+          break;
         default:
           // Handle other sections if any
           const capitalized = section.charAt(0).toUpperCase() + section.slice(1);

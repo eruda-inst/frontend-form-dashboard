@@ -80,13 +80,14 @@ export const UsersList = ({
                     </Avatar>
                     <div className="flex flex-col gap-2 h-full justify-center pl-6 items-left text-left">
                       <CardTitle>
-                        {user.nome}{" "}
-                        <span className="opacity-70 text-accent-foreground">
-                          @{user.username}
-                        </span>
+                        {user.nome}
                       </CardTitle>
                       <CardDescription>
-                        <Badge variant="default">{user.grupo.nome}</Badge>
+                        {user.grupo.nome != "admin" ? (
+                          <Badge variant="outline" className="p-2">{user.grupo.nome}</Badge>
+                        ) : (
+                          <Badge variant="default">{user.grupo.nome}</Badge>
+                        )}{" "}
                       </CardDescription>
                     </div>
                   </div>
