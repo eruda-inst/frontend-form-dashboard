@@ -25,6 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { TypographyH2 } from "@/components/ui/typography";
 import type { Resposta, RespostaItem } from "@/app/types/responses";
 import type { Pergunta } from "@/app/types/forms";
 import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket";
@@ -140,8 +141,8 @@ export default function FormDetailsPage() {
   return (
     <>
       <div className="w-full border-b py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold tracking-tight">{form.titulo}</h1>
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-4xl tracking-tight">{form.titulo}</h1>
           <p className="text-lg text-muted-foreground mt-2">{form.descricao}</p>
           <p className="text-sm text-muted-foreground">
             Criado em: {new Date(form.criado_em).toLocaleDateString("pt-BR")}
@@ -150,7 +151,7 @@ export default function FormDetailsPage() {
       </div>
 
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h2 className="text-2xl font-bold tracking-tight mb-4">Respostas</h2>
+        <TypographyH2>Respostas</TypographyH2>
         {isLoadingResponses ? (
           <div className="flex justify-center items-center h-40">
             <Loader2 className="mr-2 h-8 w-8 animate-spin" />
@@ -213,17 +214,15 @@ export default function FormDetailsPage() {
                 const pergunta = form?.perguntas.find(p => p.id === perguntaId);
                 const answerValues = items.map(item => getAnswerValue(item, pergunta)).join(', ');
                 return (
-                  <div key={perguntaId} className="grid grid-cols-4 items-center gap-4">
+                  <div key={perguntaId} className="grid grid-cols-1 items-center gap-1">
                     <h4 className="font-bold">{pergunta?.texto || "Pergunta Desconhecida"}:</h4>
-                    <div className="col-span-3">{answerValues}</div>
+                    <div className="">{answerValues}</div>
                   </div>
                 );
               });
             })()}
           </div>
-          <DialogFooter>
-            <Button onClick={() => setIsDialogOpen(false)}>Fechar</Button>
-          </DialogFooter>
+          
         </DialogContent>
       </Dialog>
     </>

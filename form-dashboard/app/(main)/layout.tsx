@@ -10,12 +10,18 @@ import { DashboardProvider, useDashboard } from "@/components/dashboard-context"
 import { NavigationProvider } from "@/components/navigation-provider"
 import Cookies from "js-cookie"
 import { toast } from "sonner"
+import { useTheme } from "next-themes";
+
+// ... dentro do seu componente
+
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const { resolvedTheme } = useTheme();
+
   return (
     <SidebarProvider className="h-screen overflow-hidden">
         <MenubarProvider>
@@ -24,8 +30,17 @@ export default function MainLayout({
               <UserFetcher>
                 <AppSidebar />
                 <SidebarInset className="overflow-scroll">
-                  <DashboardHeader style={{backdropFilter: "blur(20px)", background: "linear-gradient(to bottom, rgba(9, 9, 11) 50%, rgba(0, 0, 0, 0))"}} className="sticky top-0 z-10 "/>
-                  <main className="flex flex-1 h-full flex-col gap-4 p-4 pt-0">{children}</main>
+                  <DashboardHeader 
+                    style={resolvedTheme === "dark" 
+                      ? { background: "linear-gradient(to bottom, rgba(9, 9, 11) 50%, rgba(0, 0, 0, 0))" } 
+                      : { background: "linear-gradient(to bottom, rgba(255, 255, 255) 50%, rgba(0, 0, 0, 0))" }} 
+                    className="sticky top-0 z-10 "
+                  />
+                  <main className="">
+                    <div className="flex flex-1 h-full flex-col gap-4 p-4 pb-4">
+                      {children}
+                    </div>
+                  </main>
                 </SidebarInset>
               </UserFetcher>
             </NavigationProvider>

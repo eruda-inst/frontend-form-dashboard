@@ -67,12 +67,12 @@ export const UsersList = ({
           <DialogTrigger asChild>
             <Card
                 key={user.id}
-                style={{ backgroundImage: `url(${user.imagem})` }}
-                className="border-2 border-secondary  backdrop-blur-sm overflow-hidden p-0 bg-cover cursor-pointer flex flex-col transition-transform duration-300 ease-in-out hover:scale-101"
+               
+                className="  backdrop-blur-sm overflow-hidden p-0 bg-cover cursor-pointer flex flex-col transition-transform duration-300 ease-in-out hover:scale-101"
               >
-                <div className=" bg-transparent  backdrop-blur-2xl z-2 w-full h-full absolute"></div>
-                <div className="bg-card opacity-60 z-1 w-full h-full absolute"></div>
-                <CardHeader className="z-3 p-6 flex flex-col items-left  text-center">
+                {/* <div className=" bg-transparent  backdrop-blur-2xl z-22 w-full h-full absolute"></div>
+                <div className="bg-card opacity-60 z-21 w-full h-full absolute"></div> */}
+                <CardHeader className="z-13 p-6 flex flex-col items-left  text-center">
                   <div className="flex">
                     <Avatar className="mb-2 h-20 w-20">
                       <AvatarImage src={user.imagem} alt={user.nome} />
