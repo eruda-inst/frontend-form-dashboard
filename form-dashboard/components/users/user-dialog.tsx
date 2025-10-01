@@ -22,6 +22,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 // Definindo o tipo para um usuário, baseado na sua resposta da API
 type User = {
@@ -57,6 +58,7 @@ export const UserDialog = ({
   deleteConfirmation,
   setDeleteConfirmation,
   handleDeactivateUser,
+  className,
 }: {
   user: User
   newPassword: string
@@ -67,15 +69,11 @@ export const UserDialog = ({
   deleteConfirmation: string
   setDeleteConfirmation: (confirmation: string) => void
   handleDeactivateUser: (user: User) => void
+  className?: string
 }) => (
-  <>
-    <div className=" bg-transparent  backdrop-blur-2xl -z-1 w-full h-16 absolute"></div>
-    <div className=" bg-card opacity-60  backdrop-blur-2xl -z-1 w-full h-16 absolute"></div>
-    <div
-      style={{ backgroundImage: `url(${user.imagem})` }}
-      className="backdrop-blur-2xl -z-2 w-full h-16 absolute"
-    ></div>
-    <div className="bg-card -z-3 w-full h-full absolute"></div>
+  <div className={cn("flex flex-col gap-4", className)}>
+ 
+
     <DialogHeader>
       <Avatar className="z-10 mb-2 h-20 w-20">
         <AvatarImage src={user.imagem} alt={user.nome} />
@@ -163,5 +161,4 @@ export const UserDialog = ({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  </>
-)
+  </div>)

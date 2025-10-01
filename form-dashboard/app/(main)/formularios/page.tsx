@@ -97,7 +97,7 @@ export default function Page() {
         forms.map((form) => (
           <Card
             key={form.id}
-            className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-105"
+            className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-101"
             onClick={() => router.push(`/formularios/${form.id}`)}
           >
             <CardHeader>

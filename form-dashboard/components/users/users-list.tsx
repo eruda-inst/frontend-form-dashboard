@@ -84,7 +84,7 @@ export const UsersList = ({
                       </CardTitle>
                       <CardDescription>
                         {user.grupo.nome != "admin" ? (
-                          <Badge variant="outline" className="p-2">{user.grupo.nome}</Badge>
+                          <Badge variant="secondary" className="">{user.grupo.nome}</Badge>
                         ) : (
                           <Badge variant="default">{user.grupo.nome}</Badge>
                         )}{" "}
@@ -95,7 +95,7 @@ export const UsersList = ({
               </Card>
           </DialogTrigger>
           <DialogContent>
-            <UserDialog
+            <UserDialog className="overflow-hidden"
               user={user}
               newPassword={newPassword}
               setNewPassword={setNewPassword}

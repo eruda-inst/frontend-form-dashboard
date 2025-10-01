@@ -90,7 +90,7 @@ export default function GroupsPage() {
             group={group}
             onGroupUpdated={fetchGroups}
           >
-            <Card className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-105">
+            <Card className="cursor-pointer transition-transform duration-300 ease-in-out hover:scale-101">
               <CardHeader>
                 <CardTitle>{group.nome}</CardTitle>
                 <CardDescription>

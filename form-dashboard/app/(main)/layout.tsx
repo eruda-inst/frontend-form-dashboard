@@ -31,8 +31,8 @@ export default function MainLayout({
                 <AppSidebar />
                 <SidebarInset className="overflow-scroll">
                   <DashboardHeader 
-                    // style={{ background: "linear-gradient(to bottom, var(--background) 50%, transparent)" }}
-                    // className="sticky top-0 z-10 "
+                    style={{ background: "linear-gradient(to bottom, var(--background) 50%, transparent)" }}
+                    className="sticky top-0 z-10 "
                   />
                   <main className="">
                     <div className="flex flex-1 h-full flex-col gap-4 p-4 pb-4">
