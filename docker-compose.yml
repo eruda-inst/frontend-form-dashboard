@@ -78,7 +78,7 @@ services:
       MAX_IMAGE_SIZE_MB: "5"
       ALLOWED_IMAGE_TYPES: '["image/jpeg","image/png","image/webp"]'
       SECRET_KEY: supersegura
-      RUN_MIGRATIONS: "0"
+      RUN_MIGRATIONS: "1"
       UVICORN_RELOAD: "0"
     ports:
       - "8000:8000"

@@ -11,6 +11,7 @@ import { NavigationProvider } from "@/components/navigation-provider"
 import Cookies from "js-cookie"
 import { toast } from "sonner"
 import { useTheme } from "next-themes";
+import { PermissionsProvider } from "@/components/permissions-context";
 
 // ... dentro do seu componente
 
@@ -27,20 +28,25 @@ export default function MainLayout({
         <MenubarProvider>
           <DashboardProvider>
             <NavigationProvider>
-              <UserFetcher>
-                <AppSidebar />
-                <SidebarInset className="overflow-scroll">
-                  <DashboardHeader 
-                    style={{ background: "linear-gradient(to bottom, var(--background) 50%, transparent)" }}
-                    className="sticky top-0 z-10 "
-                  />
-                  <main className="">
-                    <div className="flex flex-1 h-full flex-col gap-4 p-4 pb-4">
-                      {children}
-                    </div>
-                  </main>
-                </SidebarInset>
-              </UserFetcher>
+              <PermissionsProvider>
+                <UserFetcher>
+                  <AppSidebar />
+                  <SidebarInset className="overflow-scroll">
+                    <DashboardHeader
+                      style={{
+                        background:
+                          "linear-gradient(to bottom, var(--background) 50%, transparent)",
+                      }}
+                      className="sticky top-0 z-10 "
+                    />
+                    <main className="">
+                      <div className="flex flex-1 h-full flex-col gap-4 p-4 pb-4">
+                        {children}
+                      </div>
+                    </main>
+                  </SidebarInset>
+                </UserFetcher>
+              </PermissionsProvider>
             </NavigationProvider>
           </DashboardProvider>
         </MenubarProvider>

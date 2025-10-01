@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Card, CardContent } from "@/components/ui/card"
 import { versionString, versionNotes } from "../versionNotes"
+import { usePermissions } from "./permissions-context"
 // import Separator from "@/components/ui/separator"
 const navMain = [
     {
@@ -129,10 +130,17 @@ const projects = [
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const { permissions, loading } = usePermissions()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!loading) {
+      console.log("Permissions loaded in AppSidebar:", permissions)
+    }
+  }, [loading, permissions])
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -150,6 +158,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={navMain} />
         {/* <NavProjects projects={projects}/> */}
+        
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
