@@ -48,20 +48,17 @@ export const PermissionsProvider = ({
       setLoading(true);
       try {
         const response = await fetch("/api/user/permissions");
-        console.log("PermissionsProvider: Fetch response:", response);
-
         if (response.ok) {
-          const groups: Group[] = await response.json();
-          console.log("PermissionsProvider: Parsed groups:", groups);
+          const data = await response.json(); // This is the object like { usuario: '...', permissoes: [...] }
+          const permissionsList = data.permissoes || []; // Get the array of strings
 
-          const allPermissions = new Set<string>();
-          groups.forEach((group) => {
-            group.permissoes.forEach((p) => allPermissions.add(p.codigo));
-          });
-
-          const permissionsArray = Array.from(allPermissions);
-          console.log("PermissionsProvider: Setting permissions:", permissionsArray);
-          setPermissions(permissionsArray);
+          // Ensure it's an array of strings before setting state
+          if (Array.isArray(permissionsList) && permissionsList.every(p => typeof p === 'string')) {
+            setPermissions(permissionsList);
+          } else {
+            console.error("PermissionsProvider: API response field 'permissoes' is not an array of strings.", data);
+            setPermissions([]);
+          }
         } else {
           console.error("PermissionsProvider: Response not OK", response);
           setPermissions([]);

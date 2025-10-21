@@ -41,66 +41,26 @@ const navMain = [
       title: "Formulários",
       url: "/formularios",
       icon: ClipboardPenLine,
+      permission: "Ver formulários",
     },
     {
       title: "Usuários",
       url: "/usuarios",
       icon: Users,
+      permission: "Ver usuários",
     },
     {
       title: "Grupos e Permissões",
       url: "/grupos-e-permissoes",
       icon: UserCog,
+      permission: "Ver grupos",
     },
     {
       title: "Integrações",
       url: "/integracoes",
       icon: Cable,
+      permission: "Ver integrações",
     }
-    // {
-    //   title: "Models",
-    //   url: "#",
-    //   icon: Bot,
-    //   items: [
-    //     {
-    //       title: "Genesis",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Explorer",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Quantum",
-    //       url: "#",
-    //     },
-    //   ],
-    // },
-    // {
-    //   title: "Documentation",
-    //   url: "#",
-    //   icon: BookOpen,
-    //   items: [
-    //     {
-    //       title: "Introduction",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Get Started",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Tutorials",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Changelog",
-    //       url: "#",
-    //     },
-    //   ],
-    // },
-    
-   
   ]
 const navSecondary = [
     {
@@ -127,6 +87,12 @@ const projects = [
     },
   ]
 
+import { Skeleton } from "@/components/ui/skeleton";
+
+// ... (rest of the imports)
+
+// ... (navMain, navSecondary, projects constants)
+
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -135,12 +101,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  useEffect(() => {
-    if (!loading) {
-      console.log("Permissions loaded in AppSidebar:", permissions)
-    }
-  }, [loading, permissions])
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -156,9 +116,15 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         )}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
-        {/* <NavProjects projects={projects}/> */}
-        
+        {loading ? (
+          <div className="space-y-2 px-2 mt-4">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : (
+          <NavMain items={navMain} permissions={permissions} />
+        )}
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
