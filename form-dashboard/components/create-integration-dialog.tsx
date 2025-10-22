@@ -16,7 +16,17 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Plus } from "lucide-react"
 
-export function CreateIntegrationDialog({ onIntegrationCreated }) {
+interface CreateIntegrationDialogProps {
+  onIntegrationCreated: (integration: {
+    endereco: string
+    porta: number
+    usuario: string
+    nome_banco: string
+    habilitada: boolean
+    endereco_completo: string
+  }) => void
+}
+export function CreateIntegrationDialog({ onIntegrationCreated }: CreateIntegrationDialogProps) {
   const [open, setOpen] = useState(false)
   const [endereco, setEndereco] = useState("")
   const [porta, setPorta] = useState(0)
