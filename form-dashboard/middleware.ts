@@ -40,11 +40,10 @@ export async function middleware(request: NextRequest) {
   if (refreshToken && !isAuthPage && !isSetupPage) {
     if (await isTokenExpired(accessToken)) {
       console.log(`[MW-LOG] Token is missing or about to expire. Attempting to refresh.`);
-      const requestUrl = new URL('/api/auth/refresh', request.nextUrl.origin);
-      console.log(`[MW-LOG] Refresh token API URL: ${requestUrl.toString()}`);
+      const refreshUrl = new URL('/api/auth/refresh', request.url);
 
       try {
-        const refreshResponse = await fetch(new URL("http://localhost:3000/api/auth/refresh"), {
+        const refreshResponse = await fetch(refreshUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh_token: refreshToken }),
@@ -77,20 +76,25 @@ export async function middleware(request: NextRequest) {
   // Lógica de Redirecionamento com as novas regras
   console.log("[MW-LOG] Proceeding with new redirection rules.");
   const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  console.log(`[MW-LOG] API Base URL: ${apiBase}`);
   const authStatusUrl = `${apiBase}/setup/status`;
-  let grupo_admin_existe = true;
-  let autenticado = false;
+  // Inicia como false. Se a API falhar ou o campo não existir, força o redirecionamento para o setup.
+  // Assume que o endpoint /setup/status agora retorna 'admin_user_existe' para indicar se o usuário admin foi criado.
+  let admin_user_existe = false; 
+  // A autenticação é determinada pela presença de tokens válidos.
+  const autenticado = !!accessToken && !!refreshToken;
 
+  console.log(`[MW-LOG] Fetching admin setup status from: ${authStatusUrl}`);
   try {
     const resp = await fetch(authStatusUrl, {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      cache: "no-store",
+      // Este endpoint é público, não precisa de autenticação.
+      // Enviar um token expirado pode causar falha na requisição.
+      cache: 'no-store',
       signal: (AbortSignal as any).timeout ? (AbortSignal as any).timeout(1500) : undefined,
     });
     if (resp.ok) {
       const j = await resp.json();
-      grupo_admin_existe = !!j?.grupo_admin_existe;
-      autenticado = !!j?.autenticado && !!accessToken;
+      admin_user_existe = !!j?.admin_user_existe; // Verifica se o usuário admin existe
     }
   } catch (error) {
     console.error(`[MW-LOG] CRITICAL: Error fetching auth status: ${error}.`);
@@ -99,8 +103,8 @@ export async function middleware(request: NextRequest) {
   let response: NextResponse;
 
   // REGRA 1: Setup do Admin é prioritário
-  if (!grupo_admin_existe) {
-    console.log("[MW-LOG] Rule 1: Admin group does not exist.");
+  if (!admin_user_existe) {
+    console.log("[MW-LOG] Rule 1: Admin user does not exist. Redirecting to setup.");
     response = isSetupPage ? NextResponse.next() : NextResponse.redirect(new URL("/setup-admin", request.url));
   } 
   // REGRA 2: Usuário autenticado
