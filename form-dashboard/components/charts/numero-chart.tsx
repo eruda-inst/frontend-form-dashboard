@@ -126,7 +126,7 @@ export function NumeroChart({ formId }: { formId: string }) {
   return (
     <Card>
       <CardHeader className="items-center pb-4">
-        <CardTitle>Respostas de Número</CardTitle>
+        <CardTitle>{selectedQuestion?.texto}</CardTitle>
         {numberQuestions.length > 1 ? (
           <Select
             value={selectedQuestionId || ""}
@@ -144,7 +144,7 @@ export function NumeroChart({ formId }: { formId: string }) {
             </SelectContent>
           </Select>
         ) : (
-          <CardDescription>{selectedQuestion?.texto}</CardDescription>
+          <CardDescription>Distribuição de respostas</CardDescription>
         )}
       </CardHeader>
       <CardContent>

@@ -23,7 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Label } from "@/components/ui/label" 
 import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
@@ -50,9 +50,8 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState(1)
-  const [createdForm, setCreatedForm] = useState<Form | null>(null);
+  const [createdForm, setCreatedForm] = useState<Form | null>(null)
   const [createdFormId, setCreatedFormId] = useState<string | null>(null)
-  const [perguntas, setPerguntas] = useState<Pergunta[]>([])
   const [novaPerguntaTexto, setNovaPerguntaTexto] = useState("")
   const [isFinishing, setIsFinishing] = useState(false)
   const [novaPerguntaObrigatoria, setNovaPerguntaObrigatoria] = useState(true)
@@ -60,13 +59,15 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
     { value: string; label: string }[]
   >([])
   const [isLoadingTipos, setIsLoadingTipos] = useState(true)
-  const [novaPerguntaTipo, setNovaPerguntaTipo] = useState<TipoPergunta>("texto_simples")
+  const [novaPerguntaTipo, setNovaPerguntaTipo] =
+    useState<TipoPergunta>("texto_simples")
   const [novaAlternativa, setNovaAlternativa] = useState<{
     [key: string]: string
   }>({})
   const [npsEscala, setNpsEscala] = useState({ min: 0, max: 10 })
 
   const ws = useRef<WebSocket | null>(null)
+  const perguntas = createdForm?.perguntas || []
 
   const {
     register,
@@ -97,23 +98,18 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       ws.current = socket
 
       socket.onopen = () => toast.info("Conectado para edição em tempo real.")
-      
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.conteudo && Array.isArray(data.conteudo.perguntas)) {
-          setPerguntas(data.conteudo.perguntas);
-        } else if (data.conteudo) {
-            setPerguntas(data.conteudo)
-        }
-      };
 
-      
-      
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        if (data.conteudo) {
+          setCreatedForm(data.conteudo)
+        }
+      }
 
       return () => {
         if (ws.current) {
-            ws.current.close()
-            ws.current = null
+          ws.current.close()
+          ws.current = null
         }
       }
     }
@@ -140,7 +136,8 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       const data = await res.json()
       setTiposPergunta(data)
     } catch (error) {
-      const description = error instanceof Error ? error.message : "Ocorreu um erro desconhecido."
+      const description =
+        error instanceof Error ? error.message : "Ocorreu um erro desconhecido."
       toast.error("Erro ao carregar tipos de pergunta", { description })
     } finally {
       setIsLoadingTipos(false)
@@ -154,10 +151,10 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
   const sendWebSocketMessage = (message: object) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       toast.error("A conexão para edição não está ativa.")
-      return false;
+      return false
     }
-    ws.current.send(JSON.stringify(message));
-    return true;
+    ws.current.send(JSON.stringify(message))
+    return true
   }
 
   const handleAddPergunta = () => {
@@ -167,39 +164,42 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
     }
 
     let newQuestionPayload: any = {
-        texto: novaPerguntaTexto,
-        tipo: novaPerguntaTipo,
-        obrigatoria: novaPerguntaObrigatoria,
-        ordem_exibicao: perguntas.length + 1,
-    };
+      texto: novaPerguntaTexto,
+      tipo: novaPerguntaTipo,
+      obrigatoria: novaPerguntaObrigatoria,
+      ordem_exibicao: perguntas.length + 1,
+    }
 
-    if (novaPerguntaTipo === "caixa_selecao" || novaPerguntaTipo === "multipla_escolha") {
-        newQuestionPayload.opcoes = [];
+    if (
+      novaPerguntaTipo === "caixa_selecao" ||
+      novaPerguntaTipo === "multipla_escolha"
+    ) {
+      newQuestionPayload.opcoes = []
     } else if (novaPerguntaTipo === "nps") {
-        newQuestionPayload.escala_min = npsEscala.min;
-        newQuestionPayload.escala_max = npsEscala.max;
+      newQuestionPayload.escala_min = npsEscala.min
+      newQuestionPayload.escala_max = npsEscala.max
     }
 
     const message = {
-        tipo: "update_formulario",
-        conteudo: {
-            perguntas_adicionadas: [newQuestionPayload]
-        }
+      tipo: "update_formulario",
+      conteudo: {
+        perguntas_adicionadas: [newQuestionPayload],
+      },
     }
 
     if (sendWebSocketMessage(message)) {
-        setNovaPerguntaTexto("");
+      setNovaPerguntaTexto("")
     }
   }
 
   const handleRemovePergunta = (perguntaId: string) => {
     const message = {
-        tipo: "update_formulario",
-        conteudo: {
-            perguntas_removidas: [perguntaId]
-        }
+      tipo: "update_formulario",
+      conteudo: {
+        perguntas_removidas: [perguntaId],
+      },
     }
-    sendWebSocketMessage(message);
+    sendWebSocketMessage(message)
   }
 
   const handleAddAlternativa = (perguntaId: string) => {
@@ -209,53 +209,71 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       return
     }
 
-    const perguntaToUpdate = perguntas.find(p => p.id === perguntaId);
+    const perguntaToUpdate = perguntas.find((p) => p.id === perguntaId)
     if (perguntaToUpdate && "opcoes" in perguntaToUpdate) {
-      const updatedOptions = [...perguntaToUpdate.opcoes, { texto: alternativaText }];
-      
+      const updatedOptions = [
+        ...perguntaToUpdate.opcoes,
+        { texto: alternativaText },
+      ]
+
       const questionPayload = {
-          id: perguntaToUpdate.id,
-          texto: perguntaToUpdate.texto,
-          tipo: perguntaToUpdate.tipo,
-          obrigatoria: perguntaToUpdate.obrigatoria,
-          ordem_exibicao: perguntas.findIndex(p => p.id === perguntaId) + 1,
-          opcoes: updatedOptions,
-      };
+        id: perguntaToUpdate.id,
+        texto: perguntaToUpdate.texto,
+        tipo: perguntaToUpdate.tipo,
+        obrigatoria: perguntaToUpdate.obrigatoria,
+        ordem_exibicao: perguntas.findIndex((p) => p.id === perguntaId) + 1,
+        opcoes: updatedOptions,
+      }
 
       const message = {
         tipo: "update_formulario",
         conteudo: {
           perguntas_editadas: [questionPayload],
         },
-      };
+      }
       if (sendWebSocketMessage(message)) {
-        setNovaAlternativa((prev) => ({ ...prev, [perguntaId]: "" }));
+        setNovaAlternativa((prev) => ({ ...prev, [perguntaId]: "" }))
       }
     }
   }
 
-  const handleRemoveAlternativa = (perguntaId: string, indexToRemove: number) => {
-    const perguntaToUpdate = perguntas.find(p => p.id === perguntaId);
+  const handleRemoveAlternativa = (
+    perguntaId: string,
+    indexToRemove: number
+  ) => {
+    const perguntaToUpdate = perguntas.find((p) => p.id === perguntaId)
     if (perguntaToUpdate && "opcoes" in perguntaToUpdate) {
-      const updatedOptions = perguntaToUpdate.opcoes.filter((_, index) => index !== indexToRemove);
-      
+      const updatedOptions = perguntaToUpdate.opcoes.filter(
+        (_, index) => index !== indexToRemove
+      )
+
       const questionPayload = {
-          id: perguntaToUpdate.id,
-          texto: perguntaToUpdate.texto,
-          tipo: perguntaToUpdate.tipo,
-          obrigatoria: perguntaToUpdate.obrigatoria,
-          ordem_exibicao: perguntas.findIndex(p => p.id === perguntaId) + 1,
-          opcoes: updatedOptions,
-      };
+        id: perguntaToUpdate.id,
+        texto: perguntaToUpdate.texto,
+        tipo: perguntaToUpdate.tipo,
+        obrigatoria: perguntaToUpdate.obrigatoria,
+        ordem_exibicao: perguntas.findIndex((p) => p.id === perguntaId) + 1,
+        opcoes: updatedOptions,
+      }
 
       const message = {
         tipo: "update_formulario",
         conteudo: {
           perguntas_editadas: [questionPayload],
         },
-      };
-      sendWebSocketMessage(message);
+      }
+      sendWebSocketMessage(message)
     }
+  }
+
+  const handleUnicoPorChaveModoChange = (value: string) => {
+    const message = {
+      tipo: "update_formulario",
+      conteudo: {
+        unico_por_chave_modo: value,
+      },
+    }
+    sendWebSocketMessage(message)
   }
 
   const handleCreateForm = async (data: CreateFormValues) => {
@@ -285,16 +303,16 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       }
 
       const newForm = await res.json()
-      setCreatedForm(newForm);
+      setCreatedForm(newForm)
       setCreatedFormId(newForm.id)
-      setPerguntas(newForm.perguntas || [])
       setStep(2)
 
       toast.success(`Formulário "${data.titulo}" criado!`, {
         description: "Agora adicione as perguntas.",
       })
     } catch (error) {
-      const description = error instanceof Error ? error.message : "Ocorreu um erro desconhecido."
+      const description =
+        error instanceof Error ? error.message : "Ocorreu um erro desconhecido."
       toast.error("Erro ao criar formulário", { description })
     }
   }
@@ -312,9 +330,8 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
       onOpenChange={(open) => {
         setIsOpen(open)
         if (!open) {
-          setPerguntas([])
           setStep(1)
-          setCreatedForm(null);
+          setCreatedForm(null)
           setCreatedFormId(null)
           reset()
           if (ws.current) {
@@ -339,11 +356,22 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
         </DialogHeader>
 
         {step === 1 && (
-          <form onSubmit={handleSubmit(handleCreateForm)} className="grid gap-4 py-4">
+          <form
+            onSubmit={handleSubmit(handleCreateForm)}
+            className="grid gap-4 py-4"
+          >
             <div className="grid gap-2">
               <Label htmlFor="titulo">Título</Label>
-              <Input id="titulo" placeholder="Ex: Pesquisa de Satisfação" {...register("titulo")} />
-              {errors.titulo && (<p className="mt-1 text-sm text-red-500">{errors.titulo.message}</p>)}
+              <Input
+                id="titulo"
+                placeholder="Ex: Pesquisa de Satisfação"
+                {...register("titulo")}
+              />
+              {errors.titulo && (
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.titulo.message}
+                </p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="descricao">Descrição</Label>
@@ -360,7 +388,9 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
             </div>
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Criar e adicionar perguntas
               </Button>
             </DialogFooter>
@@ -376,50 +406,144 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
 
               <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                 {perguntas.map((pergunta, index) => (
-                  <div key={pergunta.id} className="p-3 border rounded-lg space-y-3 bg-muted/50">
+                  <div
+                    key={pergunta.id}
+                    className="p-3 border rounded-lg space-y-3 bg-muted/50"
+                  >
                     <div className="flex justify-between items-start">
                       <Label className="font-normal text-base">
-                        {index + 1}. {pergunta.texto} 
+                        {index + 1}. {pergunta.texto}
                       </Label>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemovePergunta(pergunta.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => handleRemovePergunta(pergunta.id)}
+                      >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    {(pergunta.tipo === 'multipla_escolha' || pergunta.tipo === 'caixa_selecao') && ("opcoes" in pergunta && Array.isArray(pergunta.opcoes)) && (
-                      <div className="pl-4 space-y-2">
-                        {pergunta.opcoes.map((opcao, opIndex: number) => (
-                          <div key={opIndex} className="flex items-center gap-2">
-                            <Badge variant="secondary" className="font-normal">{opcao.texto}</Badge>
-                            <button type="button" onClick={() => handleRemoveAlternativa(pergunta.id, opIndex)} className="text-muted-foreground hover:text-destructive">
-                              <X className="h-3 w-3" />
-                            </button>
+                    {(pergunta.tipo === "multipla_escolha" ||
+                      pergunta.tipo === "caixa_selecao") &&
+                      "opcoes" in pergunta &&
+                      Array.isArray(pergunta.opcoes) && (
+                        <div className="pl-4 space-y-2">
+                          {pergunta.opcoes.map((opcao, opIndex: number) => (
+                            <div
+                              key={opIndex}
+                              className="flex items-center gap-2"
+                            >
+                              <Badge
+                                variant="secondary"
+                                className="font-normal"
+                              >
+                                {opcao.texto}
+                              </Badge>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveAlternativa(pergunta.id, opIndex)
+                                }
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                          <div className="flex">
+                            <Input
+                              className="rounded-r-none h-8"
+                              type="text"
+                              placeholder="Nova alternativa"
+                              value={novaAlternativa[pergunta.id] || ""}
+                              onChange={(e) =>
+                                setNovaAlternativa((prev) => ({
+                                  ...prev,
+                                  [pergunta.id]: e.target.value,
+                                }))
+                              }
+                              onKeyDown={(e) =>
+                                e.key === "Enter" &&
+                                handleAddAlternativa(pergunta.id)
+                              }
+                            />
+                            <Button
+                              type="button"
+                              className="cursor-pointer border-l-0 rounded-l-none h-8"
+                              variant={"outline"}
+                              onClick={() => handleAddAlternativa(pergunta.id)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
                           </div>
-                        ))}
-                        <div className="flex">
-                          <Input className="rounded-r-none h-8" type="text" placeholder="Nova alternativa" value={novaAlternativa[pergunta.id] || ""} onChange={(e) => setNovaAlternativa((prev) => ({ ...prev, [pergunta.id]: e.target.value, }))} onKeyDown={(e) => e.key === "Enter" && handleAddAlternativa(pergunta.id)} />
-                          <Button type="button" className="cursor-pointer border-l-0 rounded-l-none h-8" variant={"outline"} onClick={() => handleAddAlternativa(pergunta.id)}>
-                            <Plus className="h-4 w-4" />
-                          </Button>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 ))}
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <div className="grid gap-1.5">
+                  <Label>Modo de Resposta Única</Label>
+                  <Select // @ts-ignore
+ value={createdForm?.unico_por_chave_modo?.toString() || "none"}
+                    onValueChange={handleUnicoPorChaveModoChange}
+                  >
+                    <SelectTrigger className="w-[280px]">
+                      <SelectValue placeholder="Selecione o modo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      <SelectItem value="email">E-mail</SelectItem>
+                      <SelectItem value="phone">Telefone</SelectItem>
+                      <SelectItem value="cnpj">CNPJ</SelectItem>
+                      <SelectItem value="email_or_phone">
+                        E-mail ou Telefone
+                      </SelectItem>
+                      <SelectItem value="email_or_cnpj">
+                        E-mail ou CNPJ
+                      </SelectItem>
+                      <SelectItem value="phone_or_cnpj">
+                        Telefone ou CNPJ
+                      </SelectItem>
+                      <SelectItem value="email_or_phone_or_cnpj">
+                        E-mail, Telefone ou CNPJ
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-4 border-t pt-4">
                 <div className="flex items-end gap-2">
                   <div className="grid gap-1.5 flex-1">
                     <Label htmlFor="nova-pergunta">Texto da Pergunta</Label>
-                    <Input id="nova-pergunta" type="text" placeholder="Ex: Qual sua cor favorita?" value={novaPerguntaTexto} onChange={(e) => setNovaPerguntaTexto(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddPergunta()} />
+                    <Input
+                      id="nova-pergunta"
+                      type="text"
+                      placeholder="Ex: Qual sua cor favorita?"
+                      value={novaPerguntaTexto}
+                      onChange={(e) => setNovaPerguntaTexto(e.target.value)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && handleAddPergunta()
+                      }
+                    />
                   </div>
                   <div className="flex items-center gap-2 pb-2">
-                    <Checkbox id="obrigatoria" checked={novaPerguntaObrigatoria} onCheckedChange={(checked) => setNovaPerguntaObrigatoria(Boolean(checked))} />
-                    <Label htmlFor="obrigatoria" className="font-normal">Obrigatória</Label>
+                    <Checkbox
+                      id="obrigatoria"
+                      checked={novaPerguntaObrigatoria}
+                      onCheckedChange={(checked) =>
+                        setNovaPerguntaObrigatoria(Boolean(checked))
+                      }
+                    />
+                    <Label htmlFor="obrigatoria" className="font-normal">
+                      Obrigatória
+                    </Label>
                   </div>
                 </div>
 
-                {novaPerguntaTipo === 'nps' && (
+                {novaPerguntaTipo === "nps" && (
                   <div className="flex items-end gap-2">
                     <div className="grid gap-1.5">
                       <Label htmlFor="nps-min">Escala Mínima</Label>
@@ -427,7 +551,12 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
                         id="nps-min"
                         type="number"
                         value={npsEscala.min}
-                        onChange={(e) => setNpsEscala(prev => ({ ...prev, min: Number(e.target.value) }))}
+                        onChange={(e) =>
+                          setNpsEscala((prev) => ({
+                            ...prev,
+                            min: Number(e.target.value),
+                          }))
+                        }
                         className="w-28"
                       />
                     </div>
@@ -437,7 +566,12 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
                         id="nps-max"
                         type="number"
                         value={npsEscala.max}
-                        onChange={(e) => setNpsEscala(prev => ({ ...prev, max: Number(e.target.value) }))}
+                        onChange={(e) =>
+                          setNpsEscala((prev) => ({
+                            ...prev,
+                            max: Number(e.target.value),
+                          }))
+                        }
                         className="w-28"
                       />
                     </div>
@@ -445,34 +579,48 @@ export function CreateFormDialog({ onFormCreated }: CreateFormDialogProps) {
                 )}
 
                 <div className="flex items-end gap-2">
-                <div className="grid gap-1.5">
-                  <Label>Tipo</Label>
-                  <Select value={novaPerguntaTipo} onValueChange={(value: TipoPergunta) => setNovaPerguntaTipo(value)}>
-                    <SelectTrigger className="w-[180px]" disabled={isLoadingTipos}>
-                      <SelectValue placeholder={isLoadingTipos ? "Carregando..." : "Tipo de pergunta"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tiposPergunta.map((tipo) => (
-                        <SelectItem key={tipo.value} value={tipo.value}>
-                          {tipo.label
-                            .replace(/_/g, " ")
-                            .replace(/\b\w/g, (char) =>
-                              char.toUpperCase()
-                            )}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="button" onClick={handleAddPergunta}>
-                  <Plus className="mr-2 h-4 w-4" /> Adicionar
-                </Button>
+                  <div className="grid gap-1.5">
+                    <Label>Tipo</Label>
+                    <Select
+                      value={novaPerguntaTipo}
+                      onValueChange={(value: TipoPergunta) =>
+                        setNovaPerguntaTipo(value)
+                      }
+                    >
+                      <SelectTrigger
+                        className="w-[180px]"
+                        disabled={isLoadingTipos}
+                      >
+                        <SelectValue
+                          placeholder={
+                            isLoadingTipos
+                              ? "Carregando..."
+                              : "Tipo de pergunta"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tiposPergunta.map((tipo) => (
+                          <SelectItem key={tipo.value} value={tipo.value}>
+                            {tipo.label
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (char) => char.toUpperCase())}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="button" onClick={handleAddPergunta}>
+                    <Plus className="mr-2 h-4 w-4" /> Adicionar
+                  </Button>
                 </div>
               </div>
             </div>
             <DialogFooter>
               <Button onClick={handleFinish} disabled={isFinishing}>
-                {isFinishing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isFinishing && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Finalizar
               </Button>
             </DialogFooter>

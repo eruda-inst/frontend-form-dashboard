@@ -89,7 +89,7 @@ export function LoginForm({
         formData.append("logo_empresa", empresaLogoFile)
       }
 
-      const setupRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/setup`, {
+      const setupRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/setup/`, {
         method: "POST",
         body: formData,
       })

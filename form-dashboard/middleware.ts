@@ -8,6 +8,7 @@ async function isTokenExpired(token: string) {
     return true;
   }
   try {
+    console.log("[MW-LOG] Attempting to decode token:" + token)
     const payloadBase64 = token.split('.')[1];
     const decodedJson = atob(payloadBase64);
     const decoded = JSON.parse(decodedJson);
@@ -40,7 +41,8 @@ export async function middleware(request: NextRequest) {
   if (refreshToken && !isAuthPage && !isSetupPage) {
     if (await isTokenExpired(accessToken)) {
       console.log(`[MW-LOG] Token is missing or about to expire. Attempting to refresh.`);
-      const refreshUrl = new URL('/api/auth/refresh', request.url);
+      const refreshUrl = new URL('/api/auth/refresh', process.env.NEXT_PUBLIC_API_URL);
+      console.log(`[MW-LOG] Refresh URL: ${refreshUrl}`);
 
       try {
         const refreshResponse = await fetch(refreshUrl, {
@@ -66,8 +68,6 @@ export async function middleware(request: NextRequest) {
       } catch (error) {
         console.error(`[MW-LOG] CRITICAL: Error during token refresh fetch.`, error);
         const response = NextResponse.redirect(new URL("/login", request.url));
-        response.cookies.delete("access_token");
-        response.cookies.delete("refresh_token");
         return response;
       }
     }
@@ -80,6 +80,11 @@ export async function middleware(request: NextRequest) {
   const authStatusUrl = `${apiBase}/setup/status`;
   // Inicia como false. Se a API falhar ou o campo não existir, força o redirecionamento para o setup.
   // Assume que o endpoint /setup/status agora retorna 'admin_user_existe' para indicar se o usuário admin foi criado.
+  /*
+  
+  RESPOSTA DA ROTA /setup/status
+
+  {"grupo_admin_existe":true,"admin_existe":true,"autenticado":false,"usuario":null,"usuario_admin":{"id":"3b094027-d288-4081-8ab0-bcd239726211","nome":"Paulo Henrique M dos Santos","email":"presidencia@cdldejacobina.com.br","grupo":"admin"}}*/
   let admin_user_existe = false; 
   // A autenticação é determinada pela presença de tokens válidos.
   const autenticado = !!accessToken && !!refreshToken;
@@ -94,7 +99,7 @@ export async function middleware(request: NextRequest) {
     });
     if (resp.ok) {
       const j = await resp.json();
-      admin_user_existe = !!j?.admin_user_existe; // Verifica se o usuário admin existe
+      admin_user_existe = !!j?.admin_existe; // Verifica se o usuário admin existe
     }
   } catch (error) {
     console.error(`[MW-LOG] CRITICAL: Error fetching auth status: ${error}.`);
