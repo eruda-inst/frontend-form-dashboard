@@ -35,6 +35,7 @@ export interface PerguntaComOpcoes extends PerguntaBase {
 export type Pergunta = PerguntaTexto | PerguntaNPS | PerguntaComOpcoes
 
 export interface Form {
+  unico_por_chave_modo: any
   id: string
   titulo: string
   descricao: string

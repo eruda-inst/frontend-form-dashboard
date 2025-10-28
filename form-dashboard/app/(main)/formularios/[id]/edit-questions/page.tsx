@@ -21,7 +21,6 @@ import Cookies from "js-cookie"
 import type { Pergunta } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { AddQuestionDialog } from "@/components/add-question-dialog"
-import { useDashboard } from "@/components/dashboard-context"
 import {
   Card,
   CardContent,
@@ -30,6 +29,13 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -385,6 +391,18 @@ export default function FormDetailsPage() {
     }
   };
 
+  const handleUnicoPorChaveModoChange = (value: string) => {
+    if (form) {
+      const message = {
+        tipo: "update_formulario",
+        conteudo: {
+          unico_por_chave_modo: value,
+        },
+      };
+      sendMessage(message);
+    }
+  };
+
   const handleUpdateQuestionOrder = (reorderedQuestions: Pergunta[]) => {
     if (form) {
       const message = {
@@ -462,6 +480,36 @@ export default function FormDetailsPage() {
           {form.titulo}
         </p>
         <Separator />
+      </div>
+
+      <div className="grid gap-1.5">
+        <Label>Modo de Resposta Única</Label>
+        <Select
+          value={form?.unico_por_chave_modo?.toString() || "none"}
+          onValueChange={handleUnicoPorChaveModoChange}
+        >
+          <SelectTrigger className="w-[280px]">
+            <SelectValue placeholder="Selecione o modo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhum</SelectItem>
+            <SelectItem value="email">E-mail</SelectItem>
+            <SelectItem value="phone">Telefone</SelectItem>
+            <SelectItem value="cnpj">CNPJ</SelectItem>
+            <SelectItem value="email_or_phone">
+              E-mail ou Telefone
+            </SelectItem>
+            <SelectItem value="email_or_cnpj">
+              E-mail ou CNPJ
+            </SelectItem>
+            <SelectItem value="phone_or_cnpj">
+              Telefone ou CNPJ
+            </SelectItem>
+            <SelectItem value="email_or_phone_or_cnpj">
+              E-mail, Telefone ou CNPJ
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {questions.length > 0 ? (
