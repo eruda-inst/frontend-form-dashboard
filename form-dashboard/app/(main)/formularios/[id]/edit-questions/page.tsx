@@ -1,7 +1,7 @@
 "use client"
 
-import { useMenubar } from "@/components/menubar-context";
-import { MenubarMenuData } from "@/app/types/menubar";
+import { useMenubar } from "@/components/menubar-context"
+import { MenubarMenuData } from "@/app/types/menubar"
 
 import {
   AlertDialog,
@@ -15,12 +15,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Separator } from "@/components/ui/separator"
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Cookies from "js-cookie"
-import type { Pergunta } from "@/app/types/forms"
+import type { Pergunta, Bloco } from "@/app/types/forms"
 import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
 import { AddQuestionDialog } from "@/components/add-question-dialog"
+import { AddBlockDialog } from "@/components/add-block-dialog"
 import {
   Card,
   CardContent,
@@ -41,29 +42,41 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Button } from "@/components/ui/button"
 import { GripVertical, Loader2, Trash } from "lucide-react"
-import { useNavigation } from "@/components/navigation-provider";
+import { useNavigation } from "@/components/navigation-provider"
 import {
   DndContext,
-  closestCenter,
+  closestCorners,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
-  DragOverlay,
   DragStartEvent,
-} from '@dnd-kit/core';
+  DragOverlay,
+  useDroppable,
+} from "@dnd-kit/core"
 import {
-  arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { motion } from 'framer-motion';
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { FloatingActionButtons } from "@/components/floating-action-buttons"
 
-// Componente auxiliar para renderizar cada tipo de pergunta
+// --- Tipos --- 
+interface SortableQuestionProps {
+  pergunta: Pergunta;
+  onUpdate: (id: string, texto: string) => void;
+  handleDelete: (id: string) => void;
+  pendingDeletion: string[];
+  deleteConfirmation: string;
+  setDeleteConfirmation: (value: string) => void;
+  isDragging?: boolean;
+}
+
+// --- Componentes Auxiliares ---
+
 const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
   switch (pergunta.tipo) {
     case "texto_simples":
@@ -72,6 +85,12 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
       return <Textarea placeholder="Resposta longa" disabled />
     case "data":
       return <Input type="date" disabled />
+    case "email":
+      return <Input type="email" placeholder="exemplo@email.com" disabled />
+    case "telefone":
+      return <Input type="tel" placeholder="(99) 99999-9999" disabled />
+    case "cnpj":
+      return <Input type="text" placeholder="00.000.000/0000-00" disabled />
     case "numero":
     case "nps":
       return <Input type="number" placeholder="0" disabled />
@@ -119,36 +138,38 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
   }
 }
 
-const EditableQuestion = ({ pergunta, index, onUpdate }: {
-  pergunta: Pergunta;
-  index: number;
-  onUpdate: (id: string, texto: string) => void;
+const EditableQuestion = ({
+  pergunta,
+  onUpdate,
+}: {
+  pergunta: Pergunta
+  onUpdate: (id: string, texto: string) => void
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [text, setText] = useState(pergunta.texto);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isEditing, setIsEditing] = useState(false)
+  const [text, setText] = useState(pergunta.texto)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isEditing) {
-      inputRef.current?.focus();
+      inputRef.current?.focus()
     }
-  }, [isEditing]);
+  }, [isEditing])
 
   useEffect(() => {
-    setText(pergunta.texto);
-  }, [pergunta.texto]);
+    setText(pergunta.texto)
+  }, [pergunta.texto])
 
   const handleUpdate = () => {
-    setIsEditing(false);
-  };
+    setIsEditing(false)
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newText = e.target.value;
-    setText(newText);
+    const newText = e.target.value
+    setText(newText)
     if (newText.trim() !== pergunta.texto) {
-      onUpdate(pergunta.id, newText.trim());
+      onUpdate(pergunta.id, newText.trim())
     }
-  };
+  }
 
   return (
     <div onClick={() => setIsEditing(true)} className="cursor-pointer">
@@ -160,8 +181,8 @@ const EditableQuestion = ({ pergunta, index, onUpdate }: {
           onChange={handleChange}
           onBlur={handleUpdate}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleUpdate();
+            if (e.key === "Enter") {
+              handleUpdate()
             }
           }}
           className="text-lg font-medium"
@@ -172,71 +193,109 @@ const EditableQuestion = ({ pergunta, index, onUpdate }: {
         </CardTitle>
       )}
     </div>
-  );
-};
+  )
+}
 
-const QuestionCard = ({ pergunta, index }: { pergunta: Pergunta; index: number }) => (
-  <div className="flex items-center w-full">
-    <div className="cursor-grab p-2">
-      <GripVertical className="h-5 w-5 text-muted-foreground" />
+const EditableBlockHeader = ({
+  bloco,
+  onUpdate,
+}: {
+  bloco: Bloco
+  onUpdate: (id: string, newValues: { titulo?: string; descricao?: string }) => void
+}) => {
+  const [isEditing, setIsEditing] = useState(false)
+  const [titulo, setTitulo] = useState(bloco.titulo)
+  const [descricao, setDescricao] = useState(bloco.descricao)
+
+  const handleSave = () => {
+    setIsEditing(false)
+    const updates: { titulo?: string; descricao?: string } = {}
+    if (titulo.trim() !== bloco.titulo) {
+      updates.titulo = titulo.trim()
+    }
+    if (descricao?.trim() !== bloco.descricao) {
+      updates.descricao = descricao?.trim()
+    }
+    if (Object.keys(updates).length > 0) {
+      onUpdate(bloco.id, updates)
+    }
+  }
+
+  return (
+    <div className="w-full" onClick={() => setIsEditing(true)}>
+      {isEditing ? (
+        <div className="space-y-2">
+          <Input
+            type="text"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            className="text-2xl font-bold tracking-tight text-accent-foreground"
+          />
+          <Textarea
+            value={descricao || ""}
+            onChange={(e) => setDescricao(e.target.value)}
+            onBlur={handleSave}
+            placeholder="Descrição do bloco (opcional)"
+            className="text-muted-foreground"
+          />
+        </div>
+      ) : (
+        <div className="w-full">
+          <h2 className="text-2xl font-bold tracking-tight text-accent-foreground break-words">
+            {bloco.titulo}
+          </h2>
+          {bloco.descricao && (
+            <p className="text-muted-foreground mt-1 break-words">
+              {bloco.descricao}
+            </p>
+          )}
+        </div>
+      )}
     </div>
-    <Card className="flex-grow">
-      <CardHeader>
-        <CardTitle className="text-lg font-medium break-words">
-          {pergunta.texto}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <RenderQuestion pergunta={pergunta} />
-      </CardContent>
-    </Card>
-  </div>
-);
+  )
+}
 
 
-function SortableQuestion({ pergunta, index, onUpdate, handleDelete, pendingDeletion, deleteConfirmation, setDeleteConfirmation, isDragging, droppedId }: {
-  pergunta: Pergunta;
-  index: number;
-  onUpdate: (id: string, texto: string) => void;
-  handleDelete: (id: string) => void;
-  pendingDeletion: string[];
-  deleteConfirmation: string;
-  setDeleteConfirmation: (value: string) => void;
-  isDragging: boolean;
-  droppedId: string | null;
-}) {
+// --- Componentes de Drag-and-Drop ---
+
+function SortableQuestion({ 
+  pergunta, 
+  onUpdate, 
+  handleDelete, 
+  pendingDeletion, 
+  deleteConfirmation, 
+  setDeleteConfirmation,
+  isDragging
+}: SortableQuestionProps) {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id: pergunta.id });
+    isDragging: isSourceDragging,
+  } = useSortable({ id: pergunta.id, data: { type: "Question", pergunta } })
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: isDragging ? 'none' : transition,
-  };
-
-  const variants = {
-    dragging: { opacity: 0, transition: { duration: 0 } },
-    normal: { opacity: 1 },
-  };
+    transition: transition || "transform 250ms ease-in-out",
+  }
 
   return (
-    <motion.div 
-      layout={pergunta.id !== droppedId}
-      ref={setNodeRef} 
-      style={style} 
-      variants={variants}
-      animate={isDragging ? "dragging" : "normal"}
-      className="flex items-center"
-    >
-      <div {...attributes} {...listeners} className="cursor-grab p-2">
+    <div ref={setNodeRef} style={style} className="flex items-center">
+       <div {...attributes} {...listeners} className="p-2 cursor-grab">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
       <Card
-        className={`z-50 group relative transition-all duration-500 flex-grow ${pendingDeletion.includes(pergunta.id) ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
+        className={`z-50 group relative transition-all duration-500 flex-grow ${
+          pendingDeletion.includes(pergunta.id)
+            ? "opacity-0 scale-90"
+            : "opacity-100 scale-100"
+        } ${isDragging ? "shadow-lg" : ""} ${
+          isSourceDragging ? "opacity-50" : ""
+        }`}
       >
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -252,7 +311,8 @@ function SortableQuestion({ pergunta, index, onUpdate, handleDelete, pendingDele
             <AlertDialogHeader>
               <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
               <AlertDialogDescription>
-                Essa ação não pode ser desfeita. Isso irá deletar permanentemente esta pergunta do formulário.
+                Essa ação não pode ser desfeita. Isso irá deletar
+                permanentemente esta pergunta do formulário.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-2">
@@ -267,7 +327,9 @@ function SortableQuestion({ pergunta, index, onUpdate, handleDelete, pendingDele
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDelete(pergunta.id)}>Deletar</AlertDialogAction>
+              <AlertDialogAction onClick={() => handleDelete(pergunta.id)}>
+                Deletar
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -275,7 +337,6 @@ function SortableQuestion({ pergunta, index, onUpdate, handleDelete, pendingDele
           <div className="w-full overflow-hidden">
             <EditableQuestion
               pergunta={pergunta}
-              index={index}
               onUpdate={onUpdate}
             />
           </div>
@@ -284,24 +345,138 @@ function SortableQuestion({ pergunta, index, onUpdate, handleDelete, pendingDele
           <RenderQuestion pergunta={pergunta} />
         </CardContent>
       </Card>
-    </motion.div>
-  );
+    </div>
+  )
 }
 
+const Block = ({ bloco, questions, questionProps, onUpdateBlock, onDeleteBlock }: { 
+  bloco: Bloco, 
+  questions: Pergunta[], 
+  questionProps: {
+    onUpdate: (id: string, newText: string) => void
+    handleDelete: (id:string) => void
+    pendingDeletion: string[]
+    deleteConfirmation: string
+    setDeleteConfirmation: (value: string) => void
+  },
+  onUpdateBlock: (id: string, newValues: { titulo?: string; descricao?: string }) => void,
+  onDeleteBlock: (id: string) => void,
+}) => {
+    const { isOver, setNodeRef } = useDroppable({ id: bloco.id });
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    return (
+        <div ref={setNodeRef} className={`p-6 rounded-lg border-2 bg-accent/10 transition-colors ${isOver ? 'border-primary' : 'border-accent'}`}>
+            <div className="flex justify-between items-start gap-4">
+              <EditableBlockHeader bloco={bloco} onUpdate={onUpdateBlock} />
+              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="flex-shrink-0 text-muted-foreground hover:text-destructive">
+                          <Trash className="h-5 w-5" />
+                      </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                          <AlertDialogTitle>Deletar bloco?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              Todas as perguntas neste bloco serão movidas para o primeiro bloco do formulário. Essa ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => onDeleteBlock(bloco.id)} className="bg-destructive hover:bg-destructive/90">
+                              Deletar Bloco
+                          </AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
+            </div>
+            <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                <div className="mt-6 space-y-4 min-h-[6rem]">
+                    {questions.length > 0 ? (
+                        questions.map(pergunta => <SortableQuestion key={pergunta.id} pergunta={pergunta} {...questionProps} />)
+                    ) : (
+                        <div className="flex items-center justify-center text-center h-24">
+                            <p className="text-sm text-muted-foreground">Solte uma pergunta aqui</p>
+                        </div>
+                    )}
+                </div>
+            </SortableContext>
+        </div>
+    )
+}
+
+// --- Página Principal ---
 
 export default function FormDetailsPage() {
   const params = useParams()
-  const [pendingDeletion, setPendingDeletion] = useState<string[]>([]);
-  const [deleteConfirmation, setDeleteConfirmation] = useState<string>("");
-  const [questions, setQuestions] = useState<Pergunta[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [droppedId, setDroppedId] = useState<string | null>(null);
-  
-  const router = useRouter();
+  const router = useRouter()
   const id = params.id as string
 
-      const { setMenubarData } = useMenubar();
-     useEffect(() => {
+  // --- State --- 
+  const [pendingDeletion, setPendingDeletion] = useState<string[]>([])
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string>("")
+  const [questions, setQuestions] = useState<Pergunta[]>([])
+  const [activeQuestion, setActiveQuestion] = useState<Pergunta | null>(null)
+  const [isAddQuestionOpen, setIsAddQuestionOpen] = useState(false);
+  const [isAddBlockOpen, setIsAddBlockOpen] = useState(false);
+
+  // --- Hooks ---
+  const { setMenubarData } = useMenubar()
+  const access_token = Cookies.get("access_token") || null
+  const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token)
+  const { setPageBreadcrumbs } = useNavigation()
+
+  // --- Memoização para Estrutura de Dados ---
+  const containers = useMemo(() => {
+    if (!form) return { root: [] };
+    const containerMap: { [key: string]: Pergunta[] } = { root: [] };
+    if (form.blocos) {
+      form.blocos.forEach(bloco => containerMap[bloco.id] = []);
+    }
+    questions.forEach(q => {
+      const containerId = q.bloco_id || "root";
+      if (containerMap.hasOwnProperty(containerId)) {
+        containerMap[containerId].push(q);
+      } else {
+        containerMap.root.push(q); // Fallback for questions with invalid bloco_id
+      }
+    });
+    return containerMap;
+  }, [questions, form?.blocos]);
+
+  // --- Effects ---
+  useEffect(() => {
+    if (form) {
+      const blockOrder = form.blocos?.map((b) => b.id) || []
+      const getBlockIndex = (bloco_id: string | null | undefined) => {
+        if (!bloco_id) return blockOrder.length // root items last
+        const index = blockOrder.indexOf(bloco_id)
+        return index === -1 ? blockOrder.length : index
+      }
+
+      const sortedQuestions = [...form.perguntas].sort((a, b) => {
+        const blockIndexA = getBlockIndex(a.bloco_id)
+        const blockIndexB = getBlockIndex(b.bloco_id)
+        if (blockIndexA !== blockIndexB) {
+          return blockIndexA - blockIndexB
+        }
+        return a.ordem_exibicao - b.ordem_exibicao
+      })
+
+      setQuestions(sortedQuestions)
+      const formTitle =
+        form.titulo.length > 20
+          ? `${form.titulo.substring(0, 20)}...`
+          : form.titulo
+      setPageBreadcrumbs([
+        { title: formTitle, url: `/formularios/${id}` },
+        { title: "Gestão de Questões" },
+      ])
+    }
+  }, [form, id, setPageBreadcrumbs])
+
+  useEffect(() => {
     const menubarData: MenubarMenuData[] = [
       {
         trigger: "Configurações",
@@ -325,7 +500,8 @@ export default function FormDetailsPage() {
         content: [
           {
             label: "Visualizar",
-            onClick: () => router.push(`/formularios/${id}/visualizar-respostas`),
+            onClick: () =>
+              router.push(`/formularios/${id}/visualizar-respostas`),
           },
           {
             label: "Exportar",
@@ -333,47 +509,15 @@ export default function FormDetailsPage() {
           },
         ],
       },
-    ];
-    setMenubarData(menubarData);
+    ]
+    setMenubarData(menubarData)
 
     return () => {
-      setMenubarData([]); // Clear menubar data when component unmounts
-    };
-  }, [id, router, setMenubarData]);
-
-  const access_token = Cookies.get("access_token") || null
-
-  const { form, isLoading, error, sendMessage } = useFormWebSocket(id, access_token)
-  const { setPageBreadcrumbs } = useNavigation();
-
-  const activeQuestion = questions.find((q) => q.id === activeId);
-
-  useEffect(() => {
-    if (form) {
-      const sortedQuestions = [...form.perguntas].sort((a, b) => a.ordem_exibicao - b.ordem_exibicao);
-      setQuestions(sortedQuestions);
-      const formTitle = form.titulo.length > 20 ? `${form.titulo.substring(0, 20)}...` : form.titulo;
-      setPageBreadcrumbs([
-        { title: formTitle, url: `/formularios/${id}` },
-        { title: "Gestão de Questões" },
-      ]);
+      setMenubarData([]) // Clear menubar data when component unmounts
     }
-  }, [form, id, setPageBreadcrumbs]);
+  }, [id, router, setMenubarData])
 
-  useEffect(() => {
-    if (droppedId) {
-      const timer = setTimeout(() => setDroppedId(null), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [droppedId]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
+  // --- Handlers ---
   const handleUpdateQuestion = (questionId: string, newText: string) => {
     if (form) {
       const message = {
@@ -386,10 +530,63 @@ export default function FormDetailsPage() {
             },
           ],
         },
-      };
-      sendMessage(message);
+      }
+      sendMessage(message)
     }
+  }
+
+  const handleUpdateBlock = (blockId: string, newValues: { titulo?: string; descricao?: string }) => {
+    const message = {
+        tipo: "update_formulario",
+        conteudo: {
+            blocos_editados: [
+                {
+                    id: blockId,
+                    ...newValues,
+                },
+            ],
+        },
+    };
+    sendMessage(message);
   };
+
+  const handleDeleteBlock = (blockId: string) => {
+    if (!form || !form.blocos) return;
+
+    if (form.blocos.length <= 1) {
+        alert("Você não pode deletar o último bloco do formulário.");
+        return;
+    }
+
+    const targetBlock = form.blocos.find(b => b.id !== blockId);
+    if (!targetBlock) return;
+
+    const questionsToMove = containers[blockId] || [];
+    const perguntas_editadas = questionsToMove.map(q => ({
+        id: q.id,
+        bloco_id: targetBlock.id,
+    }));
+
+    const message = {
+        tipo: "update_formulario",
+        conteudo: {
+            blocos_removidos: [blockId],
+            ...(perguntas_editadas.length > 0 && { perguntas_editadas }),
+        },
+    };
+
+    setQuestions(currentQuestions => {
+        return currentQuestions.map(q => {
+            if (q.bloco_id === blockId) {
+                return { ...q, bloco_id: targetBlock.id };
+            }
+            return q;
+        });
+    });
+
+    sendMessage(message);
+  };
+
 
   const handleUnicoPorChaveModoChange = (value: string) => {
     if (form) {
@@ -398,62 +595,184 @@ export default function FormDetailsPage() {
         conteudo: {
           unico_por_chave_modo: value,
         },
-      };
-      sendMessage(message);
+      }
+      sendMessage(message)
     }
-  };
-
-  const handleUpdateQuestionOrder = (reorderedQuestions: Pergunta[]) => {
-    if (form) {
-      const message = {
-        tipo: "update_formulario",
-        conteudo: {
-          perguntas_editadas: reorderedQuestions.map((q, index) => ({
-            id: q.id,
-            ordem_exibicao: index,
-          })),
-        },
-      };
-      sendMessage(message);
-    }
-  };
+  }
 
   const handleDeleteQuestion = (questionId: string) => {
-    if (!form) return;
+    if (!form) return
 
-    setPendingDeletion(prev => [...prev, questionId]);
+    setPendingDeletion((prev) => [...prev, questionId])
 
     setTimeout(() => {
       const message = {
-        "tipo": "update_formulario",
-        "conteudo": {
-          "perguntas_removidas": [questionId]
-        }
-      };
-      sendMessage(message);
-    }, 500);
+        tipo: "update_formulario",
+        conteudo: {
+          perguntas_removidas: [questionId],
+        },
+      }
+      sendMessage(message)
+    }, 500)
+  }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor)
+  )
+
+  function findContainer(id: string) {
+    if (id === "root" || form?.blocos?.some(b => b.id === id)) {
+      return id
+    }
+    return questions.find((q) => q.id === id)?.bloco_id || "root"
   }
 
   function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string);
+    const { active } = event
+    setActiveQuestion(questions.find(q => q.id === active.id) || null)
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    setActiveId(null);
-    setDroppedId(active.id as string);
+    if (!form) return
 
-    if (over && active.id !== over.id) {
-      setQuestions((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const reorderedItems = arrayMove(items, oldIndex, newIndex);
-        handleUpdateQuestionOrder(reorderedItems);
-        return reorderedItems;
-      });
+    const { active, over } = event
+    setActiveQuestion(null)
+
+    if (!over || active.id === over.id) return
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeContainer = findContainer(activeId)
+    const overContainer = findContainer(overId)
+
+    if (activeContainer !== overContainer) {
+      const activeQuestion = questions.find((q) => q.id === activeId)
+      if (!activeQuestion) return
+
+      // Optimistic UI Update
+      setQuestions((currentQuestions) => {
+        const sourceItems = currentQuestions.filter(
+          (q) => (q.bloco_id || "root") === activeContainer && q.id !== activeId
+        )
+        const destItems = currentQuestions.filter(
+          (q) => (q.bloco_id || "root") === overContainer
+        )
+        const otherItems = currentQuestions.filter(
+          (q) =>
+            (q.bloco_id || "root") !== activeContainer &&
+            (q.bloco_id || "root") !== overContainer
+        )
+
+        const updatedSourceItems = sourceItems.map((item, index) => ({
+          ...item,
+          ordem_exibicao: index,
+        }))
+
+        let insertIndex = destItems.findIndex((q) => q.id === overId)
+        if (insertIndex === -1) {
+          insertIndex = destItems.length
+        }
+
+        const newDestItems = [...destItems]
+        newDestItems.splice(insertIndex, 0, {
+          ...activeQuestion,
+          bloco_id: overContainer === "root" ? null : overContainer,
+        })
+
+        const updatedDestItems = newDestItems.map((item, index) => ({
+          ...item,
+          ordem_exibicao: index,
+        }))
+
+        const newQuestions = [
+          ...otherItems,
+          ...updatedSourceItems,
+          ...updatedDestItems,
+        ]
+
+        const blockOrder = form.blocos?.map((b) => b.id) || []
+        const getBlockIndex = (bloco_id: string | null | undefined) => {
+          if (!bloco_id) return blockOrder.length
+          const index = blockOrder.indexOf(bloco_id)
+          return index === -1 ? blockOrder.length : index
+        }
+        return newQuestions.sort((a, b) => {
+          const blockIndexA = getBlockIndex(a.bloco_id)
+          const blockIndexB = getBlockIndex(b.bloco_id)
+          if (blockIndexA !== blockIndexB) {
+            return blockIndexA - blockIndexB
+          }
+          return a.ordem_exibicao - b.ordem_exibicao
+        })
+      })
+
+      // Backend Message
+      const sourceItems = containers[activeContainer].filter(
+        (q) => q.id !== activeId
+      )
+      const destItems = containers[overContainer]
+
+      const sourceUpdates = sourceItems.map((item, index) => ({
+        id: item.id,
+        ordem_exibicao: index,
+      }))
+
+      let insertIndex = destItems.findIndex((q) => q.id === overId)
+      if (insertIndex === -1) {
+        insertIndex = destItems.length
+      }
+      const newDestItems = [...destItems]
+      newDestItems.splice(insertIndex, 0, activeQuestion)
+
+      const destUpdates = newDestItems.map((item, index) => {
+        if (item.id === activeId) {
+          return {
+            id: item.id,
+            ordem_exibicao: index,
+            bloco_id: overContainer === "root" ? null : overContainer,
+          }
+        }
+        return { id: item.id, ordem_exibicao: index }
+      })
+
+      sendMessage({
+        tipo: "update_formulario",
+        conteudo: {
+          perguntas_editadas: [...sourceUpdates, ...destUpdates],
+        },
+      })
+    } else {
+      // --- Reordenar no mesmo container ---
+      const itemsInContainer = containers[activeContainer]
+      const oldIndex = itemsInContainer.findIndex((q) => q.id === activeId)
+      const newIndex = itemsInContainer.findIndex((q) => q.id === overId)
+
+      if (oldIndex !== newIndex) {
+        setQuestions((prev) => {
+          const oldGlobalIndex = prev.findIndex((q) => q.id === activeId)
+          const newGlobalIndex = prev.findIndex((q) => q.id === overId)
+          if (oldGlobalIndex !== -1 && newGlobalIndex !== -1) {
+            return arrayMove(prev, oldGlobalIndex, newGlobalIndex)
+          }
+          return prev
+        })
+
+        const reordered = arrayMove(itemsInContainer, oldIndex, newIndex)
+        const updatedOrder = reordered.map((q, index) => ({ id: q.id, ordem_exibicao: index }))
+        
+        sendMessage({
+          tipo: "update_formulario",
+          conteudo: {
+            perguntas_editadas: updatedOrder,
+          },
+        })
+      }
     }
   }
 
+  // --- Renderização ---
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -471,87 +790,95 @@ export default function FormDetailsPage() {
     return <div className="p-4 text-center">Formulário não encontrado.</div>
   }
 
+  const questionProps = {
+    onUpdate: handleUpdateQuestion,
+    handleDelete: handleDeleteQuestion,
+    pendingDeletion,
+    deleteConfirmation,
+    setDeleteConfirmation,
+  }
+
+  const firstBlockId = form.blocos && form.blocos.length > 0 ? form.blocos[0].id : null;
+
   return (
-    <div className="w-full mt-8 grid gap-8 px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-col">
-        <h1 className="text-4xl tracking-tight">
-          Gestão das questões</h1>
-        <p className="text-lg text-muted-foreground mt-2 mb-2">
-          {form.titulo}
-        </p>
-        <Separator />
-      </div>
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="w-full mt-8 grid gap-8 px-4 sm:px-6 lg:px-8 pb-24">
+          <div className="flex flex-col">
+            <h1 className="text-4xl tracking-tight">Gestão das Questões</h1>
+            <p className="text-lg text-muted-foreground mt-2 mb-2">
+              {form.titulo}
+            </p>
+            <Separator />
+          </div>
 
-      <div className="grid gap-1.5">
-        <Label>Modo de Resposta Única</Label>
-        <Select
-          value={form?.unico_por_chave_modo?.toString() || "none"}
-          onValueChange={handleUnicoPorChaveModoChange}
-        >
-          <SelectTrigger className="w-[280px]">
-            <SelectValue placeholder="Selecione o modo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Nenhum</SelectItem>
-            <SelectItem value="email">E-mail</SelectItem>
-            <SelectItem value="phone">Telefone</SelectItem>
-            <SelectItem value="cnpj">CNPJ</SelectItem>
-            <SelectItem value="email_or_phone">
-              E-mail ou Telefone
-            </SelectItem>
-            <SelectItem value="email_or_cnpj">
-              E-mail ou CNPJ
-            </SelectItem>
-            <SelectItem value="phone_or_cnpj">
-              Telefone ou CNPJ
-            </SelectItem>
-            <SelectItem value="email_or_phone_or_cnpj">
-              E-mail, Telefone ou CNPJ
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <div className="grid gap-1.5">
+            <Label>Modo de Resposta Única</Label>
+            <Select
+              value={form?.unico_por_chave_modo?.toString() || "none"}
+              onValueChange={handleUnicoPorChaveModoChange}
+            >
+              <SelectTrigger className="w-[280px]">
+                <SelectValue placeholder="Selecione o modo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum</SelectItem>
+                <SelectItem value="email">E-mail</SelectItem>
+                <SelectItem value="phone">Telefone</SelectItem>
+                <SelectItem value="cnpj">CNPJ</SelectItem>
+                <SelectItem value="email_or_phone">E-mail ou Telefone</SelectItem>
+                <SelectItem value="email_or_cnpj">E-mail ou CNPJ</SelectItem>
+                <SelectItem value="phone_or_cnpj">Telefone ou CNPJ</SelectItem>
+                <SelectItem value="email_or_phone_or_cnpj">E-mail, Telefone ou CNPJ</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {questions.length > 0 ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={questions.map(q => q.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="flex-col space-y-4">
-              {questions.map((pergunta, index) => (
-                <SortableQuestion
-                  key={pergunta.id}
-                  pergunta={pergunta}
-                  index={index}
-                  onUpdate={handleUpdateQuestion}
-                  handleDelete={handleDeleteQuestion}
-                  pendingDeletion={pendingDeletion}
-                  deleteConfirmation={deleteConfirmation}
-                  setDeleteConfirmation={setDeleteConfirmation}
-                  isDragging={activeId === pergunta.id}
-                  droppedId={droppedId}
-                />
-              ))}
-            </div>
-          </SortableContext>
-          <DragOverlay>
-            {activeQuestion ? <QuestionCard pergunta={activeQuestion} index={questions.findIndex(q => q.id === activeId)} /> : null}
-          </DragOverlay>
-        </DndContext>
-      ) : (
-        <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
-            Este formulário ainda não possui perguntas.
-          </CardContent>
-        </Card>
+          <div className="space-y-8">
+            {form.blocos?.map((bloco) => (
+              <Block key={bloco.id} bloco={bloco} questions={containers[bloco.id] || []} questionProps={questionProps} onUpdateBlock={handleUpdateBlock} onDeleteBlock={handleDeleteBlock} />
+            ))}
+
+          </div>
+
+        </div>
+
+        <DragOverlay>
+          {activeQuestion ? <SortableQuestion pergunta={activeQuestion} {...questionProps} isDragging /> : null}
+        </DragOverlay>
+      </DndContext>
+
+      <FloatingActionButtons
+        onAddQuestionClick={() => {
+          if (!firstBlockId) {
+            alert("Crie um bloco antes de adicionar uma questão.")
+            return
+          }
+          setIsAddQuestionOpen(true)
+        }}
+        onAddBlockClick={() => setIsAddBlockOpen(true)}
+      />
+
+      {firstBlockId && (
+        <AddQuestionDialog
+          isOpen={isAddQuestionOpen}
+          onOpenChange={setIsAddQuestionOpen}
+          formId={form.id}
+          onQuestionAdded={() => {}}
+          targetBlockId={firstBlockId}
+        />
       )}
-      <AddQuestionDialog formId={form.id} onQuestionAdded={() => { }} />
-    </div>
+
+      <AddBlockDialog
+        isOpen={isAddBlockOpen}
+        onOpenChange={setIsAddBlockOpen}
+        sendMessage={sendMessage}
+      />
+    </>
   )
 }

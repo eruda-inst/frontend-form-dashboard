@@ -6,6 +6,16 @@ export type TipoPergunta =
   | "data"
   | "numero"
   | "nps"
+  | "email"
+  | "telefone"
+  | "cnpj"
+
+export interface Bloco {
+  id: string
+  titulo: string
+  descricao: string | null
+  form_id: string
+}
 
 interface PerguntaBase {
   id: string
@@ -14,11 +24,12 @@ interface PerguntaBase {
   obrigatoria: boolean
   texto: string
   ordem_exibicao: number
-  opcoes: { texto: string }[] 
+  opcoes: { texto: string }[]
+  bloco_id: string | null
 }
 
 export interface PerguntaTexto extends PerguntaBase {
-  tipo: "texto_simples" | "texto_longo" | "data" | "numero"
+  tipo: "texto_simples" | "texto_longo" | "data" | "numero" | "email" | "telefone" | "cnpj"
 }
 
 export interface PerguntaNPS extends PerguntaBase {
@@ -40,6 +51,7 @@ export interface Form {
   titulo: string
   descricao: string
   perguntas: Pergunta[]
+  blocos: Bloco[]
   criado_em: string
   atualizado_em: string
   texto: string

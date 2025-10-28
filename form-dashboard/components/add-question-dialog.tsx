@@ -17,7 +17,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -32,14 +31,19 @@ import {
 interface AddQuestionDialogProps {
   formId: string
   onQuestionAdded: (newQuestion: Pergunta) => void
+  targetBlockId: string | null
+  isOpen: boolean
+  onOpenChange: (isOpen: boolean) => void
 }
 
 export function AddQuestionDialog({
   formId,
   onQuestionAdded,
+  targetBlockId,
+  isOpen,
+  onOpenChange,
 }: AddQuestionDialogProps) {
   const router = useRouter()
-  const [isOpen, setIsOpen] = useState(false)
   const [perguntas, setPerguntas] = useState<Pergunta[]>([])
   const [novaPerguntaTexto, setNovaPerguntaTexto] = useState("")
   const [isFinishing, setIsFinishing] = useState(false)
@@ -86,9 +90,6 @@ export function AddQuestionDialog({
           setPerguntas(data.conteudo)
         }
       }
-
-      
-      
 
       return () => {
         if (ws.current) {
@@ -143,11 +144,12 @@ export function AddQuestionDialog({
 
   const handleAddPergunta = () => {
     if (!novaPerguntaTexto.trim()) {
-      toast.warning("O texto da pergunta não pode estar em branco.")
+      toast.warning("O texto da questão não pode estar em branco.")
       return
     }
 
     let newQuestionPayload: any = {
+      bloco_id: targetBlockId,
       texto: novaPerguntaTexto,
       tipo: novaPerguntaTipo,
       obrigatoria: novaPerguntaObrigatoria,
@@ -251,14 +253,14 @@ export function AddQuestionDialog({
   }
 
   const handleFinish = () => {
-    setIsOpen(false)
+    onOpenChange(false)
   }
 
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        setIsOpen(open)
+        onOpenChange(open)
         if (!open) {
           setPerguntas([])
           if (ws.current) {
@@ -267,18 +269,11 @@ export function AddQuestionDialog({
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button className="fixed bottom-6 right-6 z-50 cursor-pointer shadow-lg">
-          Nova pergunta
-          <Plus className="h-6 w-6" />
-          <span className="sr-only">Nova Pergunta</span>
-        </Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Adicionar Nova Pergunta</DialogTitle>
+          <DialogTitle>Adicionar Nova Questão</DialogTitle>
           <DialogDescription>
-            Preencha os campos abaixo para adicionar uma nova pergunta ao
+            Preencha os campos abaixo para adicionar uma nova questão ao
             formulário.
           </DialogDescription>
         </DialogHeader>
@@ -286,7 +281,7 @@ export function AddQuestionDialog({
         <div className="grid gap-4 py-4">
           <div className="space-y-4">
             <div className="border-t pt-4">
-              <h3 className="font-medium text-lg">Perguntas</h3>
+              <h3 className="font-medium text-lg">Questões</h3>
             </div>
 
             <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
@@ -367,7 +362,7 @@ export function AddQuestionDialog({
             <div className="space-y-4 border-t pt-4">
               <div className="flex items-end gap-2">
                 <div className="grid gap-1.5 flex-1">
-                  <Label htmlFor="nova-pergunta">Texto da Pergunta</Label>
+                  <Label htmlFor="nova-pergunta">Texto da Questão</Label>
                   <Input
                     id="nova-pergunta"
                     type="text"
