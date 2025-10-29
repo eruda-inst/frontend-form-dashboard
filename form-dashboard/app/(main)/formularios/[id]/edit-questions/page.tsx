@@ -798,7 +798,8 @@ export default function FormDetailsPage() {
     setDeleteConfirmation,
   }
 
-  const firstBlockId = form.blocos && form.blocos.length > 0 ? form.blocos[0].id : null;
+  const lastBlockId = form.blocos && form.blocos.length > 0 ? form.blocos[form.blocos.length - 1].id : null;
+console.log("ultimo bloco", lastBlockId)
 
   return (
     <>
@@ -855,7 +856,7 @@ export default function FormDetailsPage() {
 
       <FloatingActionButtons
         onAddQuestionClick={() => {
-          if (!firstBlockId) {
+          if (!lastBlockId) {
             alert("Crie um bloco antes de adicionar uma questão.")
             return
           }
@@ -864,13 +865,13 @@ export default function FormDetailsPage() {
         onAddBlockClick={() => setIsAddBlockOpen(true)}
       />
 
-      {firstBlockId && (
+      {lastBlockId && (
         <AddQuestionDialog
           isOpen={isAddQuestionOpen}
           onOpenChange={setIsAddQuestionOpen}
           formId={form.id}
           onQuestionAdded={() => {}}
-          targetBlockId={firstBlockId}
+          targetBlockId={lastBlockId}
         />
       )}
 
