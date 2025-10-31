@@ -55,12 +55,12 @@ const navMain = [
       icon: UserCog,
       permission: "Ver grupos",
     },
-    {
-      title: "Integrações",
-      url: "/integracoes",
-      icon: Cable,
-      permission: "Ver integrações",
-    }
+    // {
+    //   title: "Integrações",
+    //   url: "/integracoes",
+    //   icon: Cable,
+    //   permission: "Ver integrações",
+    // }
   ]
 const navSecondary = [
     {

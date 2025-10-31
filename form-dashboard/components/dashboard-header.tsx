@@ -25,6 +25,9 @@ import {
   MenubarMenu,
   MenubarSeparator,
   MenubarShortcut,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
@@ -45,12 +48,12 @@ const renderMenubarItems = (items: MenubarContentItem[]) => {
     if ('content' in item && Array.isArray(item.content)) {
       // If it has 'content' and it's an array, it's a MenubarMenuData
       return (
-        <MenubarMenu key={index}>
-          <MenubarTrigger>{item.trigger}</MenubarTrigger>
-          <MenubarContent>
+        <MenubarSub key={index}>
+          <MenubarSubTrigger>{item.trigger}</MenubarSubTrigger>
+          <MenubarSubContent>
             {renderMenubarItems(item.content)}
-          </MenubarContent>
-        </MenubarMenu>
+          </MenubarSubContent>
+        </MenubarSub>
       );
     } else {
       // If it doesn't have 'content' or 'content' is not an array, it must be a MenubarItemData
