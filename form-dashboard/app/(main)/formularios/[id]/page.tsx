@@ -44,7 +44,48 @@ export default function FormDetailsPage() {
   const { form, isLoading, error } = useFormWebSocket(id, access_token);
   const { responses } = useResponsesWebSocket(id, access_token);
 
-  // Added this useEffect block
+  const npsData = useMemo(() => {
+    if (!form || !responses) {
+      return [];
+    }
+
+    const npsPerguntas = form.perguntas.filter(p => p.tipo === 'nps');
+    if (npsPerguntas.length === 0) {
+      return [];
+    }
+
+    return npsPerguntas.map(pergunta => {
+      const scoreCounts = Array(11).fill(0).map((_, i) => ({ score: i, count: 0 }));
+      let totalResponses = 0;
+
+      responses.forEach(response => {
+        const npsItem = response.itens.find(item => item.pergunta_id === pergunta.id);
+        if (npsItem && typeof npsItem.valor_numero === 'number') {
+          const score = npsItem.valor_numero;
+          if (score >= 0 && score <= 10) {
+            scoreCounts[score].count++;
+            totalResponses++;
+          }
+        }
+      });
+
+      // Still calculate the overall NPS score for the header
+      const detractors = scoreCounts.slice(0, 7).reduce((sum, item) => sum + item.count, 0);
+      const promoters = scoreCounts.slice(9, 11).reduce((sum, item) => sum + item.count, 0);
+      const promoterPercentage = totalResponses > 0 ? (promoters / totalResponses) * 100 : 0;
+      const detractorPercentage = totalResponses > 0 ? (detractors / totalResponses) * 100 : 0;
+      const npsScore = Math.round(promoterPercentage - detractorPercentage);
+
+      return {
+        questionId: pergunta.id,
+        questionText: pergunta.texto,
+        score: npsScore,
+        total: totalResponses,
+        scoreCounts: scoreCounts,
+      };
+    });
+  }, [form, responses]);
+
   useEffect(() => {
     if (form) {
       const title = form.titulo.length > 20 ? `${form.titulo.substring(0, 20)}...` : form.titulo;
@@ -95,48 +136,6 @@ export default function FormDetailsPage() {
     };
   }, [id, router, setMenubarData]);
 
-  const npsData = useMemo(() => {
-    if (!form || !responses) {
-      return [];
-    }
-
-    const npsPerguntas = form.perguntas.filter(p => p.tipo === 'nps');
-    if (npsPerguntas.length === 0) {
-      return [];
-    }
-
-    return npsPerguntas.map(pergunta => {
-      const scoreCounts = Array(11).fill(0).map((_, i) => ({ score: i, count: 0 }));
-      let totalResponses = 0;
-
-      responses.forEach(response => {
-        const npsItem = response.itens.find(item => item.pergunta_id === pergunta.id);
-        if (npsItem && typeof npsItem.valor_numero === 'number') {
-          const score = npsItem.valor_numero;
-          if (score >= 0 && score <= 10) {
-            scoreCounts[score].count++;
-            totalResponses++;
-          }
-        }
-      });
-
-      // Still calculate the overall NPS score for the header
-      const detractors = scoreCounts.slice(0, 7).reduce((sum, item) => sum + item.count, 0);
-      const promoters = scoreCounts.slice(9, 11).reduce((sum, item) => sum + item.count, 0);
-      const promoterPercentage = totalResponses > 0 ? (promoters / totalResponses) * 100 : 0;
-      const detractorPercentage = totalResponses > 0 ? (detractors / totalResponses) * 100 : 0;
-      const npsScore = Math.round(promoterPercentage - detractorPercentage);
-
-      return {
-        questionId: pergunta.id,
-        questionText: pergunta.texto,
-        score: npsScore,
-        total: totalResponses,
-        scoreCounts: scoreCounts,
-      };
-    });
-  }, [form, responses]);
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -154,6 +153,35 @@ export default function FormDetailsPage() {
     return <div className="p-4 text-center">Formulário não encontrado.</div>
   }
 
+  const renderCharts = (perguntas: any[]) => {
+    return perguntas.map(pergunta => {
+      switch (pergunta.tipo) {
+        case 'nps':
+          const data = npsData.find(d => d.questionId === pergunta.id);
+          if (!data) return null;
+          return (
+            <div key={pergunta.id} className="min-h-[300px]">
+              <NpsChart data={data} />
+            </div>
+          );
+        case 'multipla_escolha':
+          return <MultiplaEscolhaChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+        case 'numero':
+          return <NumeroChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+        case 'data':
+          return <DataChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+        case 'caixa_selecao':
+          return <CaixaSelecaoChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+        default:
+          return null;
+      }
+    });
+  };
+
+  const perguntasSemBloco = form.perguntas
+    .filter(p => !p.bloco_id)
+    .sort((a, b) => a.ordem_exibicao - b.ordem_exibicao);
+
   return (
     <>
       <div className="w-full border-b py-8">
@@ -166,30 +194,31 @@ export default function FormDetailsPage() {
         </div>
       </div>
         <ChartAreaInteractive formId={id}/>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {form.perguntas
-            .sort((a, b) => a.ordem_exibicao - b.ordem_exibicao)
-            .map(pergunta => {
-            switch (pergunta.tipo) {
-              case 'nps':
-                const data = npsData.find(d => d.questionId === pergunta.id);
-                if (!data) return null;
-                return (
-                  <div key={pergunta.id} className="min-h-[300px]">
-                    <NpsChart data={data} />
-                  </div>
-                );
-              case 'multipla_escolha':
-                return <MultiplaEscolhaChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
-              case 'numero':
-                return <NumeroChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
-              case 'data':
-                return <DataChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
-              case 'caixa_selecao':
-                return <CaixaSelecaoChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
-              default:
-                return null;
-            }
+        <div className="space-y-8 mt-8">
+          {perguntasSemBloco.length > 0 && (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {renderCharts(perguntasSemBloco)}
+            </div>
+          )}
+
+          {form.blocos.map(bloco => {
+            const perguntasDoBloco = form.perguntas
+              .filter(p => p.bloco_id === bloco.id)
+              .sort((a, b) => a.ordem_exibicao - b.ordem_exibicao);
+
+            if (perguntasDoBloco.length === 0) return null;
+
+            return (
+              <div key={bloco.id} className="space-y-4">
+                <div className="border-b pb-4">
+                  <h2 className="text-2xl font-semibold tracking-tight">{bloco.titulo}</h2>
+                  {bloco.descricao && <p className="text-muted-foreground">{bloco.descricao}</p>}
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {renderCharts(perguntasDoBloco)}
+                </div>
+              </div>
+            );
           })}
         </div>
     </>
