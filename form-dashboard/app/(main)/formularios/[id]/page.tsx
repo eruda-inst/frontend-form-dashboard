@@ -28,7 +28,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Loader2 } from "lucide-react"
+import { Loader2, ChevronDown } from "lucide-react"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 
 export default function FormDetailsPage() {
@@ -209,15 +210,22 @@ export default function FormDetailsPage() {
             if (perguntasDoBloco.length === 0) return null;
 
             return (
-              <div key={bloco.id} className="space-y-4">
+              <Collapsible key={bloco.id} className="space-y-2" defaultOpen={true}>
                 <div className="border-b pb-4">
-                  <h2 className="text-2xl font-semibold tracking-tight">{bloco.titulo}</h2>
-                  {bloco.descricao && <p className="text-muted-foreground">{bloco.descricao}</p>}
+                  <CollapsibleTrigger className="group w-full flex justify-between items-center text-left">
+                    <div>
+                      <h2 className="text-2xl font-semibold tracking-tight">{bloco.titulo}</h2>
+                      {bloco.descricao && <p className="text-muted-foreground">{bloco.descricao}</p>}
+                    </div>
+                    <ChevronDown className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
                 </div>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {renderCharts(perguntasDoBloco)}
-                </div>
-              </div>
+                <CollapsibleContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
+                    {renderCharts(perguntasDoBloco)}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             );
           })}
         </div>
