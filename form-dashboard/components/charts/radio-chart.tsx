@@ -1,7 +1,6 @@
 "use client"
 
-import { TrendingUp } from "lucide-react"
-import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
+import { Bar, BarChart, XAxis, YAxis, Radar, RadarChart, PolarAngleAxis, PolarGrid, Pie, PieChart, Cell } from "recharts"
 import { useMemo } from "react"
 
 import {
@@ -21,12 +20,7 @@ import {
 import { Pergunta } from "@/app/types/forms"
 import { Resposta } from "@/app/types/responses"
 
-const chartConfig = {
-  count: {
-    label: "Votos",
-    color: "var(--chart-1)",
-  },
-} satisfies ChartConfig
+const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
 interface RadioChartProps {
   pergunta: Pergunta;
@@ -56,10 +50,69 @@ export function RadioChart({ pergunta, responses }: RadioChartProps) {
     })
 
     return Array.from(optionCounts.entries()).map(([option, count]) => ({
-      option,
-      count,
+      name: option,
+      value: count,
     }))
   }, [responses, pergunta])
+
+  const chartConfig: ChartConfig = useMemo(() => {
+    const config = {};
+    chartData.forEach((item, index) => {
+      config[item.name] = {
+        label: item.name,
+        color: COLORS[index % COLORS.length],
+      };
+    });
+    return config;
+  }, [chartData]);
+
+  const numOptions = pergunta.opcoes?.length || 0;
+
+  const renderChart = () => {
+    if (numOptions < 4) {
+      return (
+        <ChartContainer config={chartConfig} style={{ height: `${(chartData.length || 1) * 35}px` }}>
+          <BarChart accessibilityLayer data={chartData} layout="vertical" margin={{ left: 10 }}>
+            <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} tick={{ fill: "hsl(var(--foreground))" }} />
+            <XAxis type="number" dataKey="value" hide />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+            <Bar dataKey="value" radius={5}>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartContainer>
+      );
+    }
+    if (numOptions >= 4 && numOptions <= 6) {
+      return (
+        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
+          <RadarChart data={chartData}>
+            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+            <PolarAngleAxis dataKey="name" />
+            <PolarGrid />
+            <Radar dataKey="value" fill="var(--chart-1)" fillOpacity={0.6} />
+          </RadarChart>
+        </ChartContainer>
+      );
+    }
+    if (numOptions > 6) {
+      return (
+        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
+          <PieChart>
+            <ChartTooltip content={<ChartTooltipContent nameKey="value" hideLabel />} />
+            <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+      );
+    }
+    return null;
+  };
 
   return (
     <Card>
@@ -70,21 +123,7 @@ export function RadioChart({ pergunta, responses }: RadioChartProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
-        >
-          <RadarChart data={chartData}>
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <PolarAngleAxis dataKey="option" />
-            <PolarGrid />
-            <Radar
-              dataKey="count"
-              fill="var(--color-count)"
-              fillOpacity={0.6}
-            />
-          </RadarChart>
-        </ChartContainer>
+        {renderChart()}
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm">
         <div className="text-muted-foreground">

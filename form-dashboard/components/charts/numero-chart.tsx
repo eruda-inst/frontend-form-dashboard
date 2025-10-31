@@ -85,7 +85,7 @@ export function NumeroChart({ pergunta, responses }: NumeroChartProps) {
         <CardDescription>Distribuição de respostas numéricas</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
+        <ChartContainer config={chartConfig} style={{ height: `${(chartData.length || 1) * 35}px` }}>
           <BarChart
             accessibilityLayer
             data={chartData}

@@ -51,7 +51,7 @@ export function NpsChart({ data }: NpsChartProps) {
         <CardDescription>Distribuição de respostas</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
-        <ChartContainer config={chartConfig} className="w-full h-full aspect-auto">
+        <ChartContainer config={chartConfig} className="w-full h-full aspect-auto" style={{ height: `${(chartData.length || 1) * 35}px` }}>
           <BarChart
             accessibilityLayer
             data={chartData}

@@ -72,7 +72,7 @@ export function DataChart({ pergunta, responses }: DataChartProps) {
         <CardDescription>Frequência de respostas por data</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
+        <ChartContainer config={chartConfig} style={{ height: `${(chartData.length || 1) * 35}px` }}>
           <BarChart
             accessibilityLayer
             data={chartData}

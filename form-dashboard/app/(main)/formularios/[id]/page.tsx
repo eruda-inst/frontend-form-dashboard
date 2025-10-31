@@ -156,26 +156,33 @@ export default function FormDetailsPage() {
 
   const renderCharts = (perguntas: any[]) => {
     return perguntas.map(pergunta => {
+      let chartComponent;
       switch (pergunta.tipo) {
         case 'nps':
           const data = npsData.find(d => d.questionId === pergunta.id);
           if (!data) return null;
-          return (
-            <div key={pergunta.id} className="min-h-[300px]">
-              <NpsChart data={data} />
-            </div>
-          );
+          chartComponent = <NpsChart data={data} />;
+          break;
         case 'multipla_escolha':
-          return <MultiplaEscolhaChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+          chartComponent = <MultiplaEscolhaChart pergunta={pergunta} responses={responses} />;
+          break;
         case 'numero':
-          return <NumeroChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+          chartComponent = <NumeroChart pergunta={pergunta} responses={responses} />;
+          break;
         case 'data':
-          return <DataChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+          chartComponent = <DataChart pergunta={pergunta} responses={responses} />;
+          break;
         case 'caixa_selecao':
-          return <CaixaSelecaoChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+          chartComponent = <CaixaSelecaoChart pergunta={pergunta} responses={responses} />;
+          break;
         default:
           return null;
       }
+      return (
+        <div key={pergunta.id} className="masonry-grid-item">
+          {chartComponent}
+        </div>
+      );
     });
   };
 
@@ -197,7 +204,7 @@ export default function FormDetailsPage() {
         <ChartAreaInteractive formId={id}/>
         <div className="space-y-8 mt-8">
           {perguntasSemBloco.length > 0 && (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="masonry-grid">
               {renderCharts(perguntasSemBloco)}
             </div>
           )}
@@ -221,7 +228,7 @@ export default function FormDetailsPage() {
                   </CollapsibleTrigger>
                 </div>
                 <CollapsibleContent>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
+                  <div className="masonry-grid pt-4">
                     {renderCharts(perguntasDoBloco)}
                   </div>
                 </CollapsibleContent>

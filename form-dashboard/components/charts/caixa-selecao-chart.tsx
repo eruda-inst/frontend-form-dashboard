@@ -1,7 +1,7 @@
 "use client"
 
+import { Bar, BarChart, XAxis, YAxis, Radar, RadarChart, PolarAngleAxis, PolarGrid, Pie, PieChart, Cell } from "recharts"
 import { useMemo } from "react"
-import { Bar, BarChart, XAxis, YAxis } from "recharts"
 
 import { Pergunta } from "@/app/types/forms"
 import { Resposta } from "@/app/types/responses"
@@ -19,6 +19,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+
+const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
 interface CaixaSelecaoChartProps {
   pergunta: Pergunta;
@@ -53,12 +55,64 @@ export function CaixaSelecaoChart({ pergunta, responses }: CaixaSelecaoChartProp
     }))
   }, [responses, pergunta])
 
-  const chartConfig: ChartConfig = {
-    value: {
-      label: "Votos",
-      color: "var(--chart-1)",
-    },
-  }
+  const chartConfig: ChartConfig = useMemo(() => {
+    const config = {};
+    chartData.forEach((item, index) => {
+      config[item.name] = {
+        label: item.name,
+        color: COLORS[index % COLORS.length],
+      };
+    });
+    return config;
+  }, [chartData]);
+
+  const numOptions = pergunta.opcoes?.length || 0;
+
+  const renderChart = () => {
+    if (numOptions < 4) {
+      return (
+        <ChartContainer config={chartConfig} style={{ height: `${(chartData.length || 1) * 35}px` }}>
+          <BarChart accessibilityLayer data={chartData} layout="vertical" margin={{ left: 10 }}>
+            <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} tick={{ fill: "hsl(var(--foreground))" }} />
+            <XAxis type="number" dataKey="value" hide />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+            <Bar dataKey="value" radius={5}>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartContainer>
+      );
+    }
+    if (numOptions >= 4 && numOptions <= 6) {
+      return (
+        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
+          <RadarChart data={chartData}>
+            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+            <PolarAngleAxis dataKey="name" />
+            <PolarGrid />
+            <Radar dataKey="value" fill="var(--chart-1)" fillOpacity={0.6} />
+          </RadarChart>
+        </ChartContainer>
+      );
+    }
+    if (numOptions > 6) {
+      return (
+        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
+          <PieChart>
+            <ChartTooltip content={<ChartTooltipContent nameKey="value" hideLabel />} />
+            <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+      );
+    }
+    return null;
+  };
 
   return (
     <Card>
@@ -67,35 +121,7 @@ export function CaixaSelecaoChart({ pergunta, responses }: CaixaSelecaoChartProp
         <CardDescription>Respostas de caixa de seleção</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer
-          config={chartConfig}
-          className="w-full"
-          style={{ height: `${(pergunta.opcoes?.length || 6) * 40}px` }}
-        >
-          <BarChart
-            accessibilityLayer
-            data={chartData}
-            layout="vertical"
-            margin={{
-              left: 10,
-            }}
-          >
-            <YAxis
-              dataKey="name"
-              type="category"
-              tickLine={false}
-              tickMargin={10}
-              axisLine={false}
-              tick={{ fill: "hsl(var(--foreground))" }}
-            />
-            <XAxis type="number" dataKey="value" hide />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Bar dataKey="value" fill="var(--chart-1)" radius={5} />
-          </BarChart>
-        </ChartContainer>
+        {renderChart()}
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="text-muted-foreground">
