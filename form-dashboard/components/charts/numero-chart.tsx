@@ -1,13 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import Cookies from "js-cookie"
-import { Loader2 } from "lucide-react"
+import { useMemo } from "react"
 import { Bar, BarChart, XAxis, YAxis } from "recharts"
 
-import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
-import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket"
 import { Pergunta } from "@/app/types/forms"
+import { Resposta } from "@/app/types/responses"
 import {
   Card,
   CardContent,
@@ -22,39 +19,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
-export function NumeroChart({ formId }: { formId: string }) {
-  const accessToken = Cookies.get("access_token") || null
-  const { form } = useFormWebSocket(formId, accessToken)
-  const { responses, isLoading } = useResponsesWebSocket(formId, accessToken)
+interface NumeroChartProps {
+  pergunta: Pergunta;
+  responses: Resposta[];
+}
 
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
-    null
-  )
-
-  const numberQuestions = useMemo(() => {
-    return form?.perguntas.filter((p) => p.tipo === "numero") || []
-  }, [form])
-
-  useEffect(() => {
-    if (numberQuestions.length > 0 && !selectedQuestionId) {
-      setSelectedQuestionId(numberQuestions[0].id)
-    }
-  }, [numberQuestions, selectedQuestionId])
-
-  const selectedQuestion = useMemo(() => {
-    return numberQuestions.find((q) => q.id === selectedQuestionId)
-  }, [numberQuestions, selectedQuestionId])
-
+export function NumeroChart({ pergunta, responses }: NumeroChartProps) {
   const { chartData, average, median } = useMemo(() => {
-    if (!selectedQuestion || !responses) {
+    if (!pergunta || !responses || pergunta.tipo !== "numero") {
       return { chartData: [], average: 0, median: 0 }
     }
 
@@ -64,7 +37,7 @@ export function NumeroChart({ formId }: { formId: string }) {
     responses.forEach((response) => {
       response.itens.forEach((item) => {
         if (
-          item.pergunta_id === selectedQuestionId &&
+          item.pergunta_id === pergunta.id &&
           typeof item.valor_numero === "number"
         ) {
           const value = item.valor_numero
@@ -96,7 +69,7 @@ export function NumeroChart({ formId }: { formId: string }) {
     }
 
     return { chartData: data, average: avg, median: med }
-  }, [responses, selectedQuestion, selectedQuestionId])
+  }, [responses, pergunta])
 
   const chartConfig: ChartConfig = {
     value: {
@@ -105,47 +78,11 @@ export function NumeroChart({ formId }: { formId: string }) {
     },
   }
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Respostas de Número</CardTitle>
-        </CardHeader>
-        <CardContent className="flex justify-center items-center min-h-[250px]">
-          <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-          <span>Carregando respostas...</span>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (numberQuestions.length === 0) {
-    return null
-  }
-
   return (
     <Card>
       <CardHeader className="items-center pb-4">
-        <CardTitle>{selectedQuestion?.texto}</CardTitle>
-        {numberQuestions.length > 1 ? (
-          <Select
-            value={selectedQuestionId || ""}
-            onValueChange={setSelectedQuestionId}
-          >
-            <SelectTrigger className="w-[280px] mx-auto">
-              <SelectValue placeholder="Selecione uma pergunta" />
-            </SelectTrigger>
-            <SelectContent>
-              {numberQuestions.map((q) => (
-                <SelectItem key={q.id} value={q.id}>
-                  {q.texto}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <CardDescription>Distribuição de respostas</CardDescription>
-        )}
+        <CardTitle>{pergunta.texto}</CardTitle>
+        <CardDescription>Distribuição de respostas numéricas</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>

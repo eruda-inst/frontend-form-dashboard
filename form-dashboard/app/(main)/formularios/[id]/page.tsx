@@ -167,15 +167,30 @@ export default function FormDetailsPage() {
       </div>
         <ChartAreaInteractive formId={id}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {npsData && npsData.map(data => (
-            <div key={data.questionId} className="min-h-[300px]">
-              <NpsChart data={data} />
-            </div>
-          ))}
-          {form.perguntas.some(p => p.tipo === 'multipla_escolha') && <MultiplaEscolhaChart formId={id} />}
-          {form.perguntas.some(p => p.tipo === 'numero') && <NumeroChart formId={id} />}
-          {form.perguntas.some(p => p.tipo === 'data') && <DataChart formId={id} />}
-          {form.perguntas.some(p => p.tipo === 'caixa_selecao') && <CaixaSelecaoChart formId={id} />}
+          {form.perguntas
+            .sort((a, b) => a.ordem_exibicao - b.ordem_exibicao)
+            .map(pergunta => {
+            switch (pergunta.tipo) {
+              case 'nps':
+                const data = npsData.find(d => d.questionId === pergunta.id);
+                if (!data) return null;
+                return (
+                  <div key={pergunta.id} className="min-h-[300px]">
+                    <NpsChart data={data} />
+                  </div>
+                );
+              case 'multipla_escolha':
+                return <MultiplaEscolhaChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+              case 'numero':
+                return <NumeroChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+              case 'data':
+                return <DataChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+              case 'caixa_selecao':
+                return <CaixaSelecaoChart key={pergunta.id} pergunta={pergunta} responses={responses} />;
+              default:
+                return null;
+            }
+          })}
         </div>
     </>
   )

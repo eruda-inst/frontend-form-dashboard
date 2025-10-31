@@ -1,13 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import Cookies from "js-cookie"
-import { Loader2 } from "lucide-react"
+import { useMemo } from "react"
 import { Bar, BarChart, XAxis, YAxis } from "recharts"
 
-import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
-import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket"
 import { Pergunta } from "@/app/types/forms"
+import { Resposta } from "@/app/types/responses"
 import {
   Card,
   CardContent,
@@ -22,52 +19,26 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
-export function CaixaSelecaoChart({ formId }: { formId: string }) {
-  const accessToken = Cookies.get("access_token") || null
-  const { form } = useFormWebSocket(formId, accessToken)
-  const { responses, isLoading } = useResponsesWebSocket(formId, accessToken)
+interface CaixaSelecaoChartProps {
+  pergunta: Pergunta;
+  responses: Resposta[];
+}
 
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
-    null
-  )
-
-  const checkboxQuestions = useMemo(() => {
-    return form?.perguntas.filter((p) => p.tipo === "caixa_selecao") || []
-  }, [form])
-
-  useEffect(() => {
-    if (checkboxQuestions.length > 0 && !selectedQuestionId) {
-      setSelectedQuestionId(checkboxQuestions[0].id)
-    }
-  }, [checkboxQuestions, selectedQuestionId])
-  const selectedQuestion = useMemo(() => {
-    return checkboxQuestions.find((q) => q.id === selectedQuestionId)
-  }, [checkboxQuestions, selectedQuestionId])
-  
-
+export function CaixaSelecaoChart({ pergunta, responses }: CaixaSelecaoChartProps) {
   const chartData = useMemo(() => {
-    if (!selectedQuestion || !responses) {
+    if (!pergunta || !responses || pergunta.tipo !== "caixa_selecao" || !pergunta.opcoes) {
       return []
     }
 
     const optionCounts = new Map<string, number>()
-    if ("opcoes" in selectedQuestion && Array.isArray(selectedQuestion.opcoes)) {
-      selectedQuestion.opcoes.forEach((opt) => {
-        optionCounts.set(opt.texto, 0)
-      })
-    }
+    pergunta.opcoes.forEach((opt) => {
+      optionCounts.set(opt.texto, 0)
+    })
 
     responses.forEach((response) => {
       response.itens.forEach((item) => {
-        if (item.pergunta_id === selectedQuestionId && item.valor_opcao) {
+        if (item.pergunta_id === pergunta.id && item.valor_opcao) {
           const count = optionCounts.get(item.valor_opcao.texto)
           if (typeof count === "number") {
             optionCounts.set(item.valor_opcao.texto, count + 1)
@@ -80,7 +51,7 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
       name,
       value,
     }))
-  }, [responses, selectedQuestion, selectedQuestionId])
+  }, [responses, pergunta])
 
   const chartConfig: ChartConfig = {
     value: {
@@ -89,55 +60,18 @@ export function CaixaSelecaoChart({ formId }: { formId: string }) {
     },
   }
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Respostas de Caixa de Seleção</CardTitle>
-        </CardHeader>
-        <CardContent className="flex justify-center items-center min-h-[250px]">
-          <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-          <span>Carregando respostas...</span>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (checkboxQuestions.length === 0) {
-    return null
-  }
-
   return (
     <Card>
       <CardHeader className="items-center pb-4">
-        <CardTitle>Respostas de Caixa de Seleção</CardTitle>
-        {checkboxQuestions.length > 1 ? (
-          <Select
-            value={selectedQuestionId || ""}
-            onValueChange={setSelectedQuestionId}
-          >
-            <SelectTrigger className="w-[280px] mx-auto">
-              <SelectValue placeholder="Selecione uma pergunta" />
-            </SelectTrigger>
-            <SelectContent>
-              {checkboxQuestions.map((q) => (
-                <SelectItem key={q.id} value={q.id}>
-                  {q.texto}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <CardDescription>{selectedQuestion?.texto}</CardDescription>
-        )}
+        <CardTitle>{pergunta.texto}</CardTitle>
+        <CardDescription>Respostas de caixa de seleção</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer
           config={chartConfig}
           className="w-full"
-          style={{ height: `${(selectedQuestion?.opcoes?.length || 6) * 40}px` }}
+          style={{ height: `${(pergunta.opcoes?.length || 6) * 40}px` }}
         >
-        {/* <ChartContainer className={`w-full h-${selectedQuestion?.opcoes?.length}0`} config={chartConfig}> */}
           <BarChart
             accessibilityLayer
             data={chartData}

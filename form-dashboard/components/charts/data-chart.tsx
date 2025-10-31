@@ -1,13 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import Cookies from "js-cookie"
-import { Loader2 } from "lucide-react"
+import { useMemo } from "react"
 import { Bar, BarChart, XAxis, YAxis } from "recharts"
 
-import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
-import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket"
 import { Pergunta } from "@/app/types/forms"
+import { Resposta } from "@/app/types/responses"
 import {
   Card,
   CardContent,
@@ -22,39 +19,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
-export function DataChart({ formId }: { formId: string }) {
-  const accessToken = Cookies.get("access_token") || null
-  const { form } = useFormWebSocket(formId, accessToken)
-  const { responses, isLoading } = useResponsesWebSocket(formId, accessToken)
+interface DataChartProps {
+  pergunta: Pergunta;
+  responses: Resposta[];
+}
 
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
-    null
-  )
-
-  const dateQuestions = useMemo(() => {
-    return form?.perguntas.filter((p) => p.tipo === "data") || []
-  }, [form])
-
-  useEffect(() => {
-    if (dateQuestions.length > 0 && !selectedQuestionId) {
-      setSelectedQuestionId(dateQuestions[0].id)
-    }
-  }, [dateQuestions, selectedQuestionId])
-
-  const selectedQuestion = useMemo(() => {
-    return dateQuestions.find((q) => q.id === selectedQuestionId)
-  }, [dateQuestions, selectedQuestionId])
-
+export function DataChart({ pergunta, responses }: DataChartProps) {
   const chartData = useMemo(() => {
-    if (!selectedQuestion || !responses) {
+    if (!pergunta || !responses || pergunta.tipo !== "data") {
       return []
     }
 
@@ -63,7 +36,7 @@ export function DataChart({ formId }: { formId: string }) {
     responses.forEach((response) => {
       response.itens.forEach((item) => {
         if (
-          item.pergunta_id === selectedQuestionId &&
+          item.pergunta_id === pergunta.id &&
           typeof item.valor_texto === "string"
         ) {
           const date = item.valor_texto
@@ -83,7 +56,7 @@ export function DataChart({ formId }: { formId: string }) {
         (a, b) =>
           new Date(a.rawDate).getTime() - new Date(b.rawDate).getTime()
       )
-  }, [responses, selectedQuestion, selectedQuestionId])
+  }, [responses, pergunta])
 
   const chartConfig: ChartConfig = {
     value: {
@@ -92,47 +65,11 @@ export function DataChart({ formId }: { formId: string }) {
     },
   }
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Respostas de Data</CardTitle>
-        </CardHeader>
-        <CardContent className="flex justify-center items-center min-h-[250px]">
-          <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-          <span>Carregando respostas...</span>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (dateQuestions.length === 0) {
-    return null
-  }
-
   return (
     <Card>
       <CardHeader className="items-center pb-4">
-        <CardTitle>Respostas de Data</CardTitle>
-        {dateQuestions.length > 1 ? (
-          <Select
-            value={selectedQuestionId || ""}
-            onValueChange={setSelectedQuestionId}
-          >
-            <SelectTrigger className="w-[280px] mx-auto">
-              <SelectValue placeholder="Selecione uma pergunta" />
-            </SelectTrigger>
-            <SelectContent>
-              {dateQuestions.map((q) => (
-                <SelectItem key={q.id} value={q.id}>
-                  {q.texto}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <CardDescription>{selectedQuestion?.texto}</CardDescription>
-        )}
+        <CardTitle>{pergunta.texto}</CardTitle>
+        <CardDescription>Frequência de respostas por data</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>

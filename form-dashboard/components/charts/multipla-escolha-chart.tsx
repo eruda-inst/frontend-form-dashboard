@@ -1,8 +1,7 @@
-import { Bar, BarChart, PolarAngleAxis, PolarGrid, Radar, RadarChart, XAxis, YAxis } from "recharts"
+import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
 
-import { useFormWebSocket } from "@/app/hooks/useFormWebSocket"
-import { useResponsesWebSocket } from "@/app/hooks/useResponsesWebSocket"
 import { Pergunta } from "@/app/types/forms"
+import { Resposta } from "@/app/types/responses"
 import {
   Card,
   CardContent,
@@ -17,58 +16,29 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { NpsChart } from "./nps-chart"
-import { useEffect, useMemo, useState } from "react"
-import { Loader2 } from "lucide-react"
-import Cookies from "js-cookie"
+import { useMemo } from "react"
 
-export function MultiplaEscolhaChart({ formId }: { formId: string }) {
-  const accessToken = Cookies.get("access_token") || null
-  const { form } = useFormWebSocket(formId, accessToken)
-  const { responses, isLoading } = useResponsesWebSocket(formId, accessToken)
+interface MultiplaEscolhaChartProps {
+  pergunta: Pergunta;
+  responses: Resposta[];
+}
 
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
-    null
-  )
-
-  const multiChoiceQuestions = useMemo(() => {
-    return form?.perguntas.filter((p) => p.tipo === "multipla_escolha") || []
-  }, [form])
-
-  useEffect(() => {
-    if (multiChoiceQuestions.length > 0 && !selectedQuestionId) {
-      setSelectedQuestionId(multiChoiceQuestions[0].id)
-    }
-  }, [multiChoiceQuestions, selectedQuestionId])
-
-  const selectedQuestion = useMemo(() => {
-    return multiChoiceQuestions.find((q) => q.id === selectedQuestionId)
-  }, [multiChoiceQuestions, selectedQuestionId])
+export function MultiplaEscolhaChart({ pergunta, responses }: MultiplaEscolhaChartProps) {
 
   const chartData = useMemo(() => {
-    if (!selectedQuestion || !responses) {
-      return []
-    }
-
-    if (selectedQuestion.tipo !== "multipla_escolha" || !selectedQuestion.opcoes) {
+    if (!pergunta || !responses || pergunta.tipo !== "multipla_escolha" || !pergunta.opcoes) {
       return []
     }
 
     const optionCounts = new Map<string, number>()
-    selectedQuestion.opcoes.forEach((opt) => {
+    pergunta.opcoes.forEach((opt) => {
       optionCounts.set(opt.texto, 0)
     })
 
     responses.forEach((response) => {
       response.itens.forEach((item) => {
-        if (item.pergunta_id === selectedQuestionId && item.valor_opcao) {
+        if (item.pergunta_id === pergunta.id && item.valor_opcao) {
           const count = optionCounts.get(item.valor_opcao.texto)
           if (typeof count === "number") {
             optionCounts.set(item.valor_opcao.texto, count + 1)
@@ -81,7 +51,7 @@ export function MultiplaEscolhaChart({ formId }: { formId: string }) {
       option,
       count,
     }))
-  }, [responses, selectedQuestion, selectedQuestionId])
+  }, [responses, pergunta])
 
   const chartConfig: ChartConfig = useMemo(() => {
     return {
@@ -92,33 +62,9 @@ export function MultiplaEscolhaChart({ formId }: { formId: string }) {
     }
   }, [])
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Respostas de Múltipla Escolha</CardTitle>
-        </CardHeader>
-        <CardContent className="flex justify-center items-center min-h-[250px]">
-          <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-          <span>Carregando respostas...</span>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (multiChoiceQuestions.length === 0) {
-    return null // Or a message indicating no multiple choice questions
-  }
-
-  if (
-    selectedQuestion &&
-    selectedQuestion.tipo === "multipla_escolha" &&
-    Array.isArray((selectedQuestion as any).opcoes) &&
-    (selectedQuestion as any).opcoes.length < 3
-  ) {
-    const opcoes = (selectedQuestion as any).opcoes;
+  if (pergunta.tipo === "multipla_escolha" && Array.isArray(pergunta.opcoes) && pergunta.opcoes.length < 3) {
     const npsChartData = {
-      questionText: selectedQuestion.texto,
+      questionText: pergunta.texto,
       scoreCounts: chartData.map((d, i) => ({ score: i, count: d.count, optionText: d.option })),
     };
     return (
@@ -131,26 +77,8 @@ export function MultiplaEscolhaChart({ formId }: { formId: string }) {
   return (
     <Card>
       <CardHeader className="items-center pb-4">
-        <CardTitle>{selectedQuestion?.texto}</CardTitle>
-        {multiChoiceQuestions.length > 1 ? (
-          <Select
-            value={selectedQuestionId || ""}
-            onValueChange={setSelectedQuestionId}
-          >
-            <SelectTrigger className="w-[280px] mx-auto">
-              <SelectValue placeholder="Selecione uma pergunta" />
-            </SelectTrigger>
-            <SelectContent>
-              {multiChoiceQuestions.map((q) => (
-                <SelectItem key={q.id} value={q.id}>
-                  {q.texto}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <CardDescription>Respostas de múltipla escolha</CardDescription>
-        )}
+        <CardTitle>{pergunta.texto}</CardTitle>
+        <CardDescription>Respostas de múltipla escolha</CardDescription>
       </CardHeader>
       <CardContent className="pb-0">
         <ChartContainer

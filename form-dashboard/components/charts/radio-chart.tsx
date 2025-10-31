@@ -2,6 +2,7 @@
 
 import { TrendingUp } from "lucide-react"
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts"
+import { useMemo } from "react"
 
 import {
   Card,
@@ -17,32 +18,55 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-
-export const description = "A radar chart"
-
-const chartData = [
-  { month: "January", desktop: 186 },
-  { month: "February", desktop: 305 },
-  { month: "March", desktop: 237 },
-  { month: "April", desktop: 273 },
-  { month: "May", desktop: 209 },
-  { month: "June", desktop: 214 },
-]
+import { Pergunta } from "@/app/types/forms"
+import { Resposta } from "@/app/types/responses"
 
 const chartConfig = {
-  desktop: {
-    label: "Desktop",
+  count: {
+    label: "Votos",
     color: "var(--chart-1)",
   },
 } satisfies ChartConfig
 
-export function ChartRadarDefault() {
+interface RadioChartProps {
+  pergunta: Pergunta;
+  responses: Resposta[];
+}
+
+export function RadioChart({ pergunta, responses }: RadioChartProps) {
+  const chartData = useMemo(() => {
+    if (!pergunta || !responses || pergunta.tipo !== "radio" || !pergunta.opcoes) {
+      return []
+    }
+
+    const optionCounts = new Map<string, number>()
+    pergunta.opcoes.forEach((opt) => {
+      optionCounts.set(opt.texto, 0)
+    })
+
+    responses.forEach((response) => {
+      response.itens.forEach((item) => {
+        if (item.pergunta_id === pergunta.id && item.valor_opcao) {
+          const count = optionCounts.get(item.valor_opcao.texto)
+          if (typeof count === "number") {
+            optionCounts.set(item.valor_opcao.texto, count + 1)
+          }
+        }
+      })
+    })
+
+    return Array.from(optionCounts.entries()).map(([option, count]) => ({
+      option,
+      count,
+    }))
+  }, [responses, pergunta])
+
   return (
     <Card>
       <CardHeader className="items-center pb-4">
-        <CardTitle>Radar Chart</CardTitle>
+        <CardTitle>{pergunta.texto}</CardTitle>
         <CardDescription>
-          Showing total visitors for the last 6 months
+          Respostas de opção única (radio)
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-0">
@@ -52,22 +76,19 @@ export function ChartRadarDefault() {
         >
           <RadarChart data={chartData}>
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <PolarAngleAxis dataKey="month" />
+            <PolarAngleAxis dataKey="option" />
             <PolarGrid />
             <Radar
-              dataKey="desktop"
-              fill="var(--color-desktop)"
+              dataKey="count"
+              fill="var(--color-count)"
               fillOpacity={0.6}
             />
           </RadarChart>
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 leading-none font-medium">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="text-muted-foreground flex items-center gap-2 leading-none">
-          January - June 2024
+        <div className="text-muted-foreground">
+          Exibindo o total de votos para cada opção.
         </div>
       </CardFooter>
     </Card>
