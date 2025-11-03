@@ -3,9 +3,9 @@ import { cookies } from "next/headers";
 
 export async function GET(
   req: Request,
-  context: { params: { id: any } }
+  context: any
 ) {
-  const id = context.params.id;
+  const { id } = context.params;
   const token = (await cookies()).get("access_token")?.value;
 
   if (!token) {
