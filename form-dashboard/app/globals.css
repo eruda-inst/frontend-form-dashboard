@@ -6,6 +6,14 @@
 /* button{
   color: white;
 } */
+.markdown-content > * {
+  all: revert;
+}
+.markdown-content{
+  max-height: 70vh;
+  overflow: scroll;
+
+}
 
 @theme inline {
   --color-background: var(--background);

@@ -3,6 +3,7 @@ import { type LucideIcon } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { versionNotes } from "@/versionNotes"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 import {
   SidebarGroup,
@@ -50,10 +51,10 @@ export function NavSecondary({
                 <DialogHeader>
                   <DialogTitle>{item.title}</DialogTitle>
                 </DialogHeader>
-                <div className="prose dark:prose-invert">
-                  <ReactMarkdown>
-                    {versionNotes}
-                  </ReactMarkdown>
+                <div className="prose dark:prose-invert max-w-none markdown-content">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {versionNotes}
+                </ReactMarkdown>
                 </div>
               </DialogContent>
             </Dialog>

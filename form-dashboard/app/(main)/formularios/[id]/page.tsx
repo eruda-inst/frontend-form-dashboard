@@ -7,7 +7,7 @@ import { MultiplaEscolhaChart } from "@/components/charts/multipla-escolha-chart
 import { NpsChart } from "@/components/charts/nps-chart"
 import { NumeroChart } from "@/components/charts/numero-chart"
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter }
 from "next/navigation"
 import { useNavigation } from "@/components/navigation-provider"; // Added this import
@@ -28,8 +28,24 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Loader2, ChevronDown } from "lucide-react"
+import { Loader2, ChevronDown, Download } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 
 export default function FormDetailsPage() {
@@ -37,6 +53,15 @@ export default function FormDetailsPage() {
   const router = useRouter();
   const { setMenubarData } = useMenubar();
   const { setPageBreadcrumbs } = useNavigation(); // Added this line
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
+  const [formato, setFormato] = useState("csv");
+  const [inicio, setInicio] = useState("");
+  const [fim, setFim] = useState("");
+  const [fuso, setFuso] = useState("");
+  const [separador, setSeparador] = useState(",");
+  const [apenasAtivas, setApenasAtivas] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const id = params.id as string
   const access_token = Cookies.get("access_token") || null
@@ -44,6 +69,46 @@ export default function FormDetailsPage() {
 
   const { form, isLoading, error } = useFormWebSocket(id, access_token);
   const { responses } = useResponsesWebSocket(id, access_token);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (formato) params.append("formato", formato);
+      if (inicio) params.append("inicio", new Date(inicio).toISOString());
+      if (fim) params.append("fim", new Date(fim).toISOString());
+      if (fuso) params.append("fuso", fuso);
+      if (separador && formato === 'csv') params.append("separador", separador);
+      if (apenasAtivas) params.append("apenas_ativas", "true");
+
+      const url = `/formularios/${id}/export?${params.toString()}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        // Handle error response
+        console.error("Export failed", response);
+        return;
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+        : 'export';
+
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
+
+      setIsExportDialogOpen(false);
+    } catch (error) {
+      console.error("Error during export:", error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const npsData = useMemo(() => {
     if (!form || !responses) {
@@ -125,7 +190,7 @@ export default function FormDetailsPage() {
           },
           {
             label: "Exportar",
-            onClick: () => router.push(`/formularios/${id}/export`),
+            onClick: () => setIsExportDialogOpen(true),
           },
         ],
       },
@@ -192,6 +257,102 @@ export default function FormDetailsPage() {
 
   return (
     <>
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Exportar Respostas</DialogTitle>
+            <DialogDescription>
+              Selecione as opções para a exportação das respostas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="formato" className="text-right">
+                Formato
+              </Label>
+              <Select value={formato} onValueChange={setFormato}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecione o formato" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="csv">CSV</SelectItem>
+                  <SelectItem value="ndjson">NDJSON</SelectItem>
+                  <SelectItem value="xlsx">XLSX</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="inicio" className="text-right">
+                Data Início
+              </Label>
+              <Input
+                id="inicio"
+                type="datetime-local"
+                value={inicio}
+                onChange={(e) => setInicio(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="fim" className="text-right">
+                Data Fim
+              </Label>
+              <Input
+                id="fim"
+                type="datetime-local"
+                value={fim}
+                onChange={(e) => setFim(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="fuso" className="text-right">
+                Fuso Horário
+              </Label>
+              <Input
+                id="fuso"
+                value={fuso}
+                onChange={(e) => setFuso(e.target.value)}
+                placeholder="America/Sao_Paulo"
+                className="col-span-3"
+              />
+            </div>
+            {formato === "csv" && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="separador" className="text-right">
+                  Separador
+                </Label>
+                <Input
+                  id="separador"
+                  value={separador}
+                  onChange={(e) => setSeparador(e.target.value)}
+                  placeholder=","
+                  className="col-span-3"
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="apenas_ativas" className="text-right">
+                Apenas Ativas
+              </Label>
+              <Checkbox
+                id="apenas_ativas"
+                checked={apenasAtivas}
+                onCheckedChange={(checked) => setApenasAtivas(checked as boolean)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleExport} disabled={isExporting}>
+              {isExporting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exportando...</>
+              ) : (
+                <><Download className="mr-2 h-4 w-4" /> Exportar</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="w-full border-b py-8">
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl tracking-tight">{form.titulo}</h1>
