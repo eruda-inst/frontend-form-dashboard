@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  req: Request,
+  context: { params: { id: any } }
 ) {
-  const { id } = params;
-  const token = req.cookies.get("access_token")?.value;
+  const id = context.params.id;
+  const token = (await cookies()).get("access_token")?.value;
 
   if (!token) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -20,7 +20,7 @@ export async function GET(
   searchParams.forEach((value, key) => {
     backendUrl.searchParams.append(key, value);
   });
-console.log(token)
+
   try {
     const response = await fetch(backendUrl.toString(), {
       headers: {

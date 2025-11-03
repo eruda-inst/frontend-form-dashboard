@@ -459,7 +459,7 @@ export default function FormDetailsPage() {
       }
     });
     return containerMap;
-  }, [questions, form?.blocos]);
+  }, [questions, form]);
 
   // --- Effects ---
   useEffect(() => {
