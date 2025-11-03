@@ -29,7 +29,7 @@ interface RadioChartProps {
 
 export function RadioChart({ pergunta, responses }: RadioChartProps) {
   const chartData = useMemo(() => {
-    if (!pergunta || !responses || pergunta.tipo !== "radio" || !pergunta.opcoes) {
+    if (!pergunta || !responses || pergunta.tipo !== "multipla_escolha" || !pergunta.opcoes) {
       return []
     }
 
@@ -56,7 +56,7 @@ export function RadioChart({ pergunta, responses }: RadioChartProps) {
   }, [responses, pergunta])
 
   const chartConfig: ChartConfig = useMemo(() => {
-    const config = {};
+    const config: ChartConfig = {};
     chartData.forEach((item, index) => {
       config[item.name] = {
         label: item.name,

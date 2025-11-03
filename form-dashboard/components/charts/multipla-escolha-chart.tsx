@@ -56,7 +56,7 @@ export function MultiplaEscolhaChart({ pergunta, responses }: MultiplaEscolhaCha
   }, [responses, pergunta])
 
   const chartConfig: ChartConfig = useMemo(() => {
-    const config = {};
+    const config: ChartConfig = {};
     chartData.forEach((item, index) => {
       config[item.name] = {
         label: item.name,

@@ -56,7 +56,7 @@ export function CaixaSelecaoChart({ pergunta, responses }: CaixaSelecaoChartProp
   }, [responses, pergunta])
 
   const chartConfig: ChartConfig = useMemo(() => {
-    const config = {};
+    const config: ChartConfig = {};
     chartData.forEach((item, index) => {
       config[item.name] = {
         label: item.name,
