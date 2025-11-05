@@ -41,7 +41,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Button } from "@/components/ui/button"
-import { GripVertical, Loader2, Trash, Download } from "lucide-react"
+import { GripVertical, Loader2, Trash, Download, Plus } from "lucide-react"
 import { useNavigation } from "@/components/navigation-provider"
 import {
   DndContext,
@@ -357,7 +357,7 @@ function SortableQuestion({
   )
 }
 
-const Block = ({ bloco, questions, questionProps, onUpdateBlock, onDeleteBlock }: { 
+const Block = ({ bloco, questions, questionProps, onUpdateBlock, onDeleteBlock, onAddQuestion }: { 
   bloco: Bloco, 
   questions: Pergunta[], 
   questionProps: {
@@ -369,6 +369,7 @@ const Block = ({ bloco, questions, questionProps, onUpdateBlock, onDeleteBlock }
   },
   onUpdateBlock: (id: string, newValues: { titulo?: string; descricao?: string }) => void,
   onDeleteBlock: (id: string) => void,
+  onAddQuestion: (blockId: string) => void,
 }) => {
     const { isOver, setNodeRef } = useDroppable({ id: bloco.id });
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -377,27 +378,32 @@ const Block = ({ bloco, questions, questionProps, onUpdateBlock, onDeleteBlock }
         <div ref={setNodeRef} className={`p-6 rounded-lg border-2 bg-accent/10 transition-colors ${isOver ? 'border-primary' : 'border-accent'}`}>
             <div className="flex justify-between items-start gap-4">
               <EditableBlockHeader bloco={bloco} onUpdate={onUpdateBlock} />
-              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                  <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="flex-shrink-0 text-muted-foreground hover:text-destructive">
-                          <Trash className="h-5 w-5" />
-                      </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                      <AlertDialogHeader>
-                          <AlertDialogTitle>Deletar bloco?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              Todas as perguntas neste bloco serão movidas para o primeiro bloco do formulário. Essa ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onDeleteBlock(bloco.id)} className="bg-destructive hover:bg-destructive/90">
-                              Deletar Bloco
-                          </AlertDialogAction>
-                      </AlertDialogFooter>
-                  </AlertDialogContent>
-              </AlertDialog>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="flex-shrink-0 text-muted-foreground hover:text-primary" onClick={() => onAddQuestion(bloco.id)}>
+                    <Plus className="h-5 w-5" />
+                </Button>
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="flex-shrink-0 text-muted-foreground hover:text-destructive">
+                            <Trash className="h-5 w-5" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Deletar bloco?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Todas as perguntas neste bloco serão movidas para o primeiro bloco do formulário. Essa ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDeleteBlock(bloco.id)} className="bg-destructive hover:bg-destructive/90">
+                                Deletar Bloco
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
             <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
                 <div className="mt-6 space-y-4 min-h-[6rem]">
@@ -436,6 +442,8 @@ export default function FormDetailsPage() {
   const [separador, setSeparador] = useState(",");
   const [apenasAtivas, setApenasAtivas] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [targetBlockId, setTargetBlockId] = useState<string | null>(null);
+
 
   // --- Hooks ---
   const { setMenubarData } = useMenubar()
@@ -534,6 +542,11 @@ export default function FormDetailsPage() {
   }, [id, router, setMenubarData])
 
   // --- Handlers ---
+  const handleOpenAddQuestionDialog = (blockId: string) => {
+    setTargetBlockId(blockId);
+    setIsAddQuestionOpen(true);
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -853,9 +866,6 @@ export default function FormDetailsPage() {
     setDeleteConfirmation,
   }
 
-  const lastBlockId = form.blocos && form.blocos.length > 0 ? form.blocos[form.blocos.length - 1].id : null;
-console.log("ultimo bloco", lastBlockId)
-
   return (
     <>
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
@@ -994,7 +1004,7 @@ console.log("ultimo bloco", lastBlockId)
 
           <div className="space-y-8">
             {form.blocos?.map((bloco) => (
-              <Block key={bloco.id} bloco={bloco} questions={containers[bloco.id] || []} questionProps={questionProps} onUpdateBlock={handleUpdateBlock} onDeleteBlock={handleDeleteBlock} />
+              <Block key={bloco.id} bloco={bloco} questions={containers[bloco.id] || []} questionProps={questionProps} onUpdateBlock={handleUpdateBlock} onDeleteBlock={handleDeleteBlock} onAddQuestion={handleOpenAddQuestionDialog} />
             ))}
 
           </div>
@@ -1007,23 +1017,16 @@ console.log("ultimo bloco", lastBlockId)
       </DndContext>
 
       <FloatingActionButtons
-        onAddQuestionClick={() => {
-          if (!lastBlockId) {
-            alert("Crie um bloco antes de adicionar uma questão.")
-            return
-          }
-          setIsAddQuestionOpen(true)
-        }}
         onAddBlockClick={() => setIsAddBlockOpen(true)}
       />
 
-      {lastBlockId && (
+      {targetBlockId && (
         <AddQuestionDialog
           isOpen={isAddQuestionOpen}
           onOpenChange={setIsAddQuestionOpen}
           formId={form.id}
           onQuestionAdded={() => {}}
-          targetBlockId={lastBlockId}
+          targetBlockId={targetBlockId}
         />
       )}
 
