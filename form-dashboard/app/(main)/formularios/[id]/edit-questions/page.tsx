@@ -268,12 +268,12 @@ const EditableBlockHeader = ({
 
 // --- Componentes de Drag-and-Drop ---
 
-function SortableQuestion({ 
-  pergunta, 
-  onUpdate, 
-  handleDelete, 
-  pendingDeletion, 
-  deleteConfirmation, 
+function SortableQuestion({
+  pergunta,
+  onUpdate,
+  handleDelete,
+  pendingDeletion,
+  deleteConfirmation,
   setDeleteConfirmation,
   isDragging
 }: SortableQuestionProps) {
@@ -297,7 +297,7 @@ function SortableQuestion({
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
       <Card
-        className={`z-50 group relative transition-all duration-500 flex-grow ${
+        className={`group relative transition-all duration-500 flex-grow ${
           pendingDeletion.includes(pergunta.id)
             ? "opacity-0 scale-90"
             : "opacity-100 scale-100"
@@ -356,7 +356,6 @@ function SortableQuestion({
     </div>
   )
 }
-
 const Block = ({ bloco, questions, questionProps, onUpdateBlock, onDeleteBlock, onAddQuestion }: { 
   bloco: Bloco, 
   questions: Pergunta[], 
@@ -468,6 +467,12 @@ export default function FormDetailsPage() {
     });
     return containerMap;
   }, [questions, form]);
+
+  const lastOrderInBlock = useMemo(() => {
+    if (!targetBlockId || !containers[targetBlockId]) return 0;
+    const questionsInBlock = containers[targetBlockId];
+    return Math.max(...questionsInBlock.map(q => q.ordem_exibicao), 0);
+  }, [targetBlockId, containers]);
 
   // --- Effects ---
   useEffect(() => {
@@ -1011,7 +1016,7 @@ export default function FormDetailsPage() {
 
         </div>
 
-        <DragOverlay>
+        <DragOverlay zIndex={50}>
           {activeQuestion ? <SortableQuestion pergunta={activeQuestion} {...questionProps} isDragging /> : null}
         </DragOverlay>
       </DndContext>
@@ -1024,9 +1029,12 @@ export default function FormDetailsPage() {
         <AddQuestionDialog
           isOpen={isAddQuestionOpen}
           onOpenChange={setIsAddQuestionOpen}
-          formId={form.id}
-          onQuestionAdded={() => {}}
+          sendMessage={sendMessage}
+          onQuestionAdded={() => {
+            setIsAddQuestionOpen(false);
+          }}
           targetBlockId={targetBlockId}
+          lastOrder={lastOrderInBlock}
         />
       )}
 

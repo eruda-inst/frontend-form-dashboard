@@ -4,6 +4,20 @@ export const versionString = `v${packageJson.version} Alpha`
 export const versionNotes = `
 ## Histórico de Versões
 
+### Versão 0.10.1α - 06 de Novembro de 2025
+
+#### ✨ Novas Funcionalidades e Melhorias
+
+*   **Reformulação da Interface de Criação de Perguntas:** A experiência de adicionar perguntas foi otimizada. O botão "Adicionar Pergunta" foi movido para o cabeçalho de cada bloco, tornando a ação mais contextual. O botão de ação flutuante agora é dedicado exclusivamente à criação de novos blocos, simplificando o fluxo de trabalho.
+*   **Melhoria na Visualização de Arrastar e Soltar:** Ajustado o "z-index" dos itens arrastáveis para garantir que eles sempre apareçam acima do cabeçalho da página, melhorando a usabilidade da reorganização de perguntas.
+
+#### 🐞 Correções de Bugs
+
+*   Corrigido um erro de sintaxe que impedia a renderização correta dos cards de perguntas.
+*   Resolvido um erro de tipo no diálogo de adição de perguntas que estava causando falhas na compilação do projeto.
+
+---
+
 ### Versão 0.10.0α - 03 de Outubro de 2025
 
 #### ✨ Novas Funcionalidades
