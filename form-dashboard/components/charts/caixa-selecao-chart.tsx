@@ -29,7 +29,7 @@ interface CaixaSelecaoChartProps {
 
 export function CaixaSelecaoChart({ pergunta, responses }: CaixaSelecaoChartProps) {
   const chartData = useMemo(() => {
-    if (!pergunta || !responses || pergunta.tipo !== "caixa_selecao" || !pergunta.opcoes) {
+    if (pergunta.tipo !== "caixa_selecao") {
       return []
     }
 
@@ -66,7 +66,9 @@ export function CaixaSelecaoChart({ pergunta, responses }: CaixaSelecaoChartProp
     return config;
   }, [chartData]);
 
-  const numOptions = pergunta.opcoes?.length || 0;
+  if (pergunta.tipo !== "caixa_selecao") return null
+
+  const numOptions = pergunta.opcoes.length || 0;
 
   const renderChart = () => {
     if (numOptions < 4) {

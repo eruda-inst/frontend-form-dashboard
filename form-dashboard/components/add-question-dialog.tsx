@@ -120,6 +120,7 @@ export function AddQuestionDialog({
 }: AddQuestionDialogProps) {
   const router = useRouter()
   const [novaPerguntaTexto, setNovaPerguntaTexto] = useState("")
+  const [novaPerguntaDescricao, setNovaPerguntaDescricao] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [novaPerguntaObrigatoria, setNovaPerguntaObrigatoria] = useState(true)
   const [tiposPergunta, setTiposPergunta] = useState<
@@ -166,6 +167,7 @@ export function AddQuestionDialog({
         fetchTiposPergunta()
         // Reset state on open
         setNovaPerguntaTexto("")
+        setNovaPerguntaDescricao("")
         setNovaPerguntaTipo("texto_simples")
         setNovaPerguntaObrigatoria(true)
         setOpcoes([])
@@ -185,6 +187,7 @@ export function AddQuestionDialog({
     let newQuestionPayload: any = {
       bloco_id: targetBlockId,
       texto: novaPerguntaTexto,
+      descricao: novaPerguntaDescricao.trim() || null,
       tipo: novaPerguntaTipo,
       obrigatoria: novaPerguntaObrigatoria,
       ordem_exibicao: lastOrder + 1,
@@ -232,6 +235,7 @@ export function AddQuestionDialog({
 
   const previewPergunta: Partial<Pergunta> = {
     texto: novaPerguntaTexto || "Sua pergunta aqui...",
+    descricao: novaPerguntaDescricao || null,
     tipo: novaPerguntaTipo,
     opcoes: opcoes,
   }
@@ -251,7 +255,10 @@ export function AddQuestionDialog({
           <div className="space-y-3">
             <h4 className="font-medium text-lg">Preview</h4>
             <div className="p-4 border rounded-lg bg-muted/50 min-h-[100px] flex flex-col justify-center">
-                <Label className="font-semibold text-base mb-3">{previewPergunta.texto}</Label>
+                <Label className="font-semibold text-base mb-1">{previewPergunta.texto}</Label>
+                {previewPergunta.descricao && (
+                    <p className="text-sm text-muted-foreground mb-3">{previewPergunta.descricao}</p>
+                )}
                 <QuestionPreview pergunta={previewPergunta} />
             </div>
           </div>
@@ -267,6 +274,16 @@ export function AddQuestionDialog({
                 value={novaPerguntaTexto}
                 onChange={(e) => setNovaPerguntaTexto(e.target.value)}
               />
+            </div>
+
+            <div className="grid gap-1.5">
+                <Label htmlFor="nova-pergunta-descricao">Descrição (Opcional)</Label>
+                <Textarea
+                    id="nova-pergunta-descricao"
+                    placeholder="Forneça um contexto ou instruções adicionais para esta pergunta."
+                    value={novaPerguntaDescricao}
+                    onChange={(e) => setNovaPerguntaDescricao(e.target.value)}
+                />
             </div>
 
             <div className="flex items-center justify-between">

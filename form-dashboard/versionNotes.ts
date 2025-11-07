@@ -4,6 +4,18 @@ export const versionString = `v${packageJson.version} Alpha`
 export const versionNotes = `
 ## Histórico de Versões
 
+### Versão 0.10.2α - 07 de Novembro de 2025
+
+#### ✨ Novas Funcionalidades e Melhorias
+
+*   **Campo de Descrição para Perguntas:** Adicionado um campo de descrição opcional para todas as perguntas, permitindo fornecer contexto ou instruções adicionais aos usuários.
+
+#### 🐞 Correções de Bugs
+
+*   **Correção de Tipagem nos Gráficos:** Resolvido um erro de tipagem que ocorria nos componentes de gráfico ("CaixaSelecaoChart", "MultiplaEscolhaChart", "RadioChart"). A propriedade "opcoes" agora é acessada de forma segura, evitando falhas na renderização dos gráficos para perguntas de múltipla escolha e caixa de seleção.
+
+---
+
 ### Versão 0.10.1α - 06 de Novembro de 2025
 
 #### ✨ Novas Funcionalidades e Melhorias

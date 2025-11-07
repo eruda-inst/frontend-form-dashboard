@@ -29,7 +29,7 @@ const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--cha
 export function MultiplaEscolhaChart({ pergunta, responses }: MultiplaEscolhaChartProps) {
 
   const chartData = useMemo(() => {
-    if (!pergunta || !responses || pergunta.tipo !== "multipla_escolha" || !pergunta.opcoes) {
+    if (pergunta.tipo !== "multipla_escolha") {
       return []
     }
 
@@ -66,7 +66,9 @@ export function MultiplaEscolhaChart({ pergunta, responses }: MultiplaEscolhaCha
     return config;
   }, [chartData]);
 
-  const numOptions = pergunta.opcoes?.length || 0;
+  if (pergunta.tipo !== "multipla_escolha") return null
+
+  const numOptions = pergunta.opcoes.length || 0;
 
   if (pergunta.tipo === "multipla_escolha" && numOptions < 3) {
     const npsChartData = {

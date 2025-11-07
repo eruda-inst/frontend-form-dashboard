@@ -75,11 +75,9 @@ import {
 // --- Tipos --- 
 interface SortableQuestionProps {
   pergunta: Pergunta;
-  onUpdate: (id: string, texto: string) => void;
+  onUpdate: (id: string, newValues: { texto?: string; descricao?: string | null }) => void;
   handleDelete: (id: string) => void;
   pendingDeletion: string[];
-  deleteConfirmation: string;
-  setDeleteConfirmation: (value: string) => void;
   isDragging?: boolean;
 }
 
@@ -106,7 +104,7 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
       if ("opcoes" in pergunta) {
         return (
           <RadioGroup disabled>
-            {pergunta.opcoes.map((opcao, index) => (
+            {pergunta.opcoes.map((opcao: any, index: any) => (
               <div key={index} className="flex items-center space-x-2">
                 <RadioGroupItem
                   value={opcao.texto}
@@ -125,7 +123,7 @@ const RenderQuestion = ({ pergunta }: { pergunta: Pergunta }) => {
       if ("opcoes" in pergunta) {
         return (
           <div className="space-y-2">
-            {pergunta.opcoes.map((opcao, index) => (
+            {pergunta.opcoes.map((opcao: any, index: any) => (
               <div key={index} className="flex items-center space-x-2">
                 <Checkbox id={`${pergunta.id}-${index}`} disabled />
                 <Label htmlFor={`${pergunta.id}-${index}`} className="font-normal">
@@ -151,54 +149,62 @@ const EditableQuestion = ({
   onUpdate,
 }: {
   pergunta: Pergunta
-  onUpdate: (id: string, texto: string) => void
+  onUpdate: (id: string, newValues: { texto?: string; descricao?: string | null }) => void
 }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [text, setText] = useState(pergunta.texto)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [description, setDescription] = useState(pergunta.descricao)
 
-  useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus()
+  const handleSave = () => {
+    setIsEditing(false)
+    const updates: { texto?: string; descricao?: string | null } = {}
+    if (text.trim() !== pergunta.texto) {
+      updates.texto = text.trim()
     }
-  }, [isEditing])
+    if (description?.trim() !== pergunta.descricao) {
+      updates.descricao = description?.trim() || null
+    }
+    if (Object.keys(updates).length > 0) {
+      onUpdate(pergunta.id, updates)
+    }
+  }
 
   useEffect(() => {
     setText(pergunta.texto)
-  }, [pergunta.texto])
-
-  const handleUpdate = () => {
-    setIsEditing(false)
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newText = e.target.value
-    setText(newText)
-    if (newText.trim() !== pergunta.texto) {
-      onUpdate(pergunta.id, newText.trim())
-    }
-  }
+    setDescription(pergunta.descricao)
+  }, [pergunta.texto, pergunta.descricao])
 
   return (
-    <div onClick={() => setIsEditing(true)} className="cursor-pointer">
+    <div className="w-full" onClick={() => setIsEditing(true)}>
       {isEditing ? (
-        <Input
-          ref={inputRef}
-          type="text"
-          value={text}
-          onChange={handleChange}
-          onBlur={handleUpdate}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleUpdate()
-            }
-          }}
-          className="text-lg font-medium"
-        />
+        <div className="space-y-2">
+          <Input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            className="text-lg font-medium"
+          />
+          <Textarea
+            value={description || ""}
+            onChange={(e) => setDescription(e.target.value)}
+            onBlur={handleSave}
+            placeholder="Descrição da pergunta (opcional)"
+            className="text-sm text-muted-foreground"
+          />
+        </div>
       ) : (
-        <CardTitle className="text-lg font-medium break-words">
-          {pergunta.texto}
-        </CardTitle>
+        <div>
+          <CardTitle className="text-lg font-medium break-words">
+            {pergunta.texto}
+          </CardTitle>
+          {pergunta.descricao && (
+            <p className="text-sm text-muted-foreground mt-1 break-words">
+              {pergunta.descricao}
+            </p>
+          )}
+        </div>
       )}
     </div>
   )
@@ -273,8 +279,6 @@ function SortableQuestion({
   onUpdate,
   handleDelete,
   pendingDeletion,
-  deleteConfirmation,
-  setDeleteConfirmation,
   isDragging
 }: SortableQuestionProps) {
   const {
@@ -323,16 +327,6 @@ function SortableQuestion({
                 permanentemente esta pergunta do formulário.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="delete-confirmation">
-                Para confirmar, digite <strong>deletar</strong> abaixo:
-              </Label>
-              <Input
-                id="delete-confirmation"
-                value={deleteConfirmation}
-                onChange={(e) => setDeleteConfirmation(e.target.value)}
-              />
-            </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={() => handleDelete(pergunta.id)}>
@@ -360,11 +354,9 @@ const Block = ({ bloco, questions, questionProps, onUpdateBlock, onDeleteBlock, 
   bloco: Bloco, 
   questions: Pergunta[], 
   questionProps: {
-    onUpdate: (id: string, newText: string) => void
+    onUpdate: (id: string, newValues: { texto?: string; descricao?: string | null }) => void
     handleDelete: (id:string) => void
     pendingDeletion: string[]
-    deleteConfirmation: string
-    setDeleteConfirmation: (value: string) => void
   },
   onUpdateBlock: (id: string, newValues: { titulo?: string; descricao?: string }) => void,
   onDeleteBlock: (id: string) => void,
@@ -378,8 +370,9 @@ const Block = ({ bloco, questions, questionProps, onUpdateBlock, onDeleteBlock, 
             <div className="flex justify-between items-start gap-4">
               <EditableBlockHeader bloco={bloco} onUpdate={onUpdateBlock} />
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="flex-shrink-0 text-muted-foreground hover:text-primary" onClick={() => onAddQuestion(bloco.id)}>
-                    <Plus className="h-5 w-5" />
+                <Button variant="ghost" className="flex-shrink-0 text-muted-foreground hover:text-primary" onClick={() => onAddQuestion(bloco.id)}>
+                    <Plus className="h-5 w-5 mr-2" />
+                    Nova questão
                 </Button>
                 <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                     <AlertDialogTrigger asChild>
@@ -428,7 +421,6 @@ export default function FormDetailsPage() {
 
   // --- State --- 
   const [pendingDeletion, setPendingDeletion] = useState<string[]>([])
-  const [deleteConfirmation, setDeleteConfirmation] = useState<string>("")
   const [questions, setQuestions] = useState<Pergunta[]>([])
   const [activeQuestion, setActiveQuestion] = useState<Pergunta | null>(null)
   const [isAddQuestionOpen, setIsAddQuestionOpen] = useState(false);
@@ -454,8 +446,8 @@ export default function FormDetailsPage() {
   const containers = useMemo(() => {
     if (!form) return { root: [] };
     const containerMap: { [key: string]: Pergunta[] } = { root: [] };
-    if (form.blocos) {
-      form.blocos.forEach(bloco => containerMap[bloco.id] = []);
+    if (form.blocos) { // Ensure form.blocos is not null or undefined
+      form.blocos.forEach((bloco: Bloco) => containerMap[bloco.id] = []);
     }
     questions.forEach(q => {
       const containerId = q.bloco_id || "root";
@@ -477,7 +469,7 @@ export default function FormDetailsPage() {
   // --- Effects ---
   useEffect(() => {
     if (form) {
-      const blockOrder = form.blocos?.map((b) => b.id) || []
+      const blockOrder = form.blocos?.map((b: any) => b.id) || []
       const getBlockIndex = (bloco_id: string | null | undefined) => {
         if (!bloco_id) return blockOrder.length // root items last
         const index = blockOrder.indexOf(bloco_id)
@@ -591,7 +583,7 @@ export default function FormDetailsPage() {
     }
   };
 
-  const handleUpdateQuestion = (questionId: string, newText: string) => {
+  const handleUpdateQuestion = (questionId: string, newValues: { texto?: string; descricao?: string | null }) => {
     if (form) {
       const message = {
         tipo: "update_formulario",
@@ -599,7 +591,7 @@ export default function FormDetailsPage() {
           perguntas_editadas: [
             {
               id: questionId,
-              texto: newText,
+              ...newValues,
             },
           ],
         },
@@ -631,7 +623,7 @@ export default function FormDetailsPage() {
         return;
     }
 
-    const targetBlock = form.blocos.find(b => b.id !== blockId);
+    const targetBlock = form.blocos.find((b: { id: string }) => b.id !== blockId);
     if (!targetBlock) return;
 
     const questionsToMove = containers[blockId] || [];
@@ -695,7 +687,7 @@ export default function FormDetailsPage() {
   )
 
   function findContainer(id: string) {
-    if (id === "root" || form?.blocos?.some(b => b.id === id)) {
+    if (id === "root" || form?.blocos?.some((b: { id: string }) => b.id === id)) {
       return id
     }
     return questions.find((q) => q.id === id)?.bloco_id || "root"
@@ -765,7 +757,7 @@ export default function FormDetailsPage() {
           ...updatedDestItems,
         ]
 
-        const blockOrder = form.blocos?.map((b) => b.id) || []
+        const blockOrder = form.blocos?.map((b: { id: any }) => b.id) || []
         const getBlockIndex = (bloco_id: string | null | undefined) => {
           if (!bloco_id) return blockOrder.length
           const index = blockOrder.indexOf(bloco_id)
@@ -867,8 +859,6 @@ export default function FormDetailsPage() {
     onUpdate: handleUpdateQuestion,
     handleDelete: handleDeleteQuestion,
     pendingDeletion,
-    deleteConfirmation,
-    setDeleteConfirmation,
   }
 
   return (
@@ -1008,7 +998,7 @@ export default function FormDetailsPage() {
           </div>
 
           <div className="space-y-8">
-            {form.blocos?.map((bloco) => (
+            {form.blocos?.map((bloco: Bloco) => (
               <Block key={bloco.id} bloco={bloco} questions={containers[bloco.id] || []} questionProps={questionProps} onUpdateBlock={handleUpdateBlock} onDeleteBlock={handleDeleteBlock} onAddQuestion={handleOpenAddQuestionDialog} />
             ))}
 

@@ -29,7 +29,7 @@ interface RadioChartProps {
 
 export function RadioChart({ pergunta, responses }: RadioChartProps) {
   const chartData = useMemo(() => {
-    if (!pergunta || !responses || pergunta.tipo !== "multipla_escolha" || !pergunta.opcoes) {
+    if (pergunta.tipo !== "multipla_escolha") {
       return []
     }
 
@@ -66,7 +66,9 @@ export function RadioChart({ pergunta, responses }: RadioChartProps) {
     return config;
   }, [chartData]);
 
-  const numOptions = pergunta.opcoes?.length || 0;
+  if (pergunta.tipo !== "multipla_escolha") return null
+
+  const numOptions = pergunta.opcoes.length || 0;
 
   const renderChart = () => {
     if (numOptions < 4) {
