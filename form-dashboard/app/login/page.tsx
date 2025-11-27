@@ -128,7 +128,7 @@ export default function LoginPage() {
       </div>
       <div className="bg-muted relative hidden lg:block">
         <Image
-          src="/Banner.png"
+          src="/banner.png"
           alt="Image"
           fill
           className="object-cover dark:brightness-[0.8]"

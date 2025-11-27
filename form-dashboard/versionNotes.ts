@@ -4,6 +4,24 @@ export const versionString = `v${packageJson.version} Alpha`
 export const versionNotes = `
 ## Histórico de Versões
 
+### Versão 0.10.4α - 20 de Novembro de 2025
+
+#### ✨ Novas Funcionalidades e Melhorias
+
+*   **Banner da Tela Principal:** Novo banner adicionado na tela de login
+
+---
+
+### Versão 0.10.3α - 20 de Novembro de 2025
+
+#### ✨ Novas Funcionalidades e Melhorias
+
+*   **Gráfico Principal de Respostas:** O gráfico principal foi reformulado para exibir contadores de respostas em formato de barras. Agora inclui um seletor de período e um datepicker, permitindo a visualização de dados em ranges de datas específicos.
+
+
+
+---
+
 ### Versão 0.10.2α - 07 de Novembro de 2025
 
 #### ✨ Novas Funcionalidades e Melhorias

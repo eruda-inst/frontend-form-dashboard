@@ -46,6 +46,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { ChartBarMain } from "@/components/charts/chart-bar-main"
 
 
 export default function FormDetailsPage() {
@@ -362,7 +363,7 @@ export default function FormDetailsPage() {
             </p>
         </div>
       </div>
-        <ChartAreaInteractive formId={id}/>
+        <ChartBarMain responses={responses} />
         <div className="space-y-8 mt-8">
           {perguntasSemBloco.length > 0 && (
             <div className="masonry-grid">
